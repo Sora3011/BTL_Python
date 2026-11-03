@@ -279,7 +279,7 @@ with tab3:
     """
     df_summary = pd.read_sql_query(sql_summary, conn)
     st.write("**1. Bảng tổng hợp các bài đăng đã phân tích (Truy vấn `JOIN` & `GROUP BY`):**")
-    st.dataframe(df_summary, use_container_width=True, hide_index=True)
+    st.dataframe(df_summary, width='stretch', hide_index=True)
     
     if not df_summary.empty:
         selected_post = st.selectbox("Chọn Mã bài đăng (post_id) để xem biểu đồ và lọc bình luận:", df_summary["post_id"])
@@ -305,7 +305,7 @@ with tab3:
                     "Tiêu cực": "#e74c3c"
                 }
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
         with col2:
             st.write("**Danh sách bình luận chi tiết trong Database:**")
             st.dataframe(
@@ -319,7 +319,7 @@ with tab3:
                     "neg_score": "% Tiêu cực",
                     "sentiment_label": "Nhãn Cảm xúc"
                 },
-                use_container_width=True, hide_index=True
+                width='stretch', hide_index=True
             )
             
     conn.close()

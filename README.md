@@ -1,12 +1,14 @@
-# 📊 Hệ thống Phân tích Cảm xúc Bình luận - ViSoBERT + SQL
+# 📊 Hệ thống Phân tích Cảm xúc Bình luận - ViSoBERT v2 + SQL
 
-Ứng dụng web phân tích cảm xúc (Sentiment Analysis) bình luận từ **YouTube** và **Facebook** sử dụng mô hình **ViSoBERT** (Vietnamese Social BERT) kết hợp cơ sở dữ liệu **SQLite**.
+Ứng dụng web phân tích cảm xúc (Sentiment Analysis) bình luận từ **YouTube** và **Facebook** sử dụng mô hình **ViSoBERT v2** (Vietnamese Social BERT) kết hợp cơ sở dữ liệu **SQLite**.
 
 ## ✨ Tính năng chính
 
 - **Quét bình luận YouTube** tự động từ link video
 - **Phân tích bình luận Facebook** qua file CSV hoặc nhập trực tiếp
-- **Phân loại cảm xúc** thành 3 nhóm: Tích cực / Trung tính / Tiêu cực
+- **Phân loại cảm xúc 4 nhãn**: Tích cực / Trung tính / Tiêu cực / Hỗn hợp
+- **Temperature Scaling** để calibrate xác suất dự đoán
+- **Tiền xử lý thông minh**: chuyển emoticon → tiếng Việt, xử lý emoji, giảm ký tự lặp
 - **Lưu trữ dữ liệu** vào SQLite với quan hệ khóa ngoại (Posts ↔ Comments)
 - **Dashboard trực quan** với biểu đồ Plotly và truy vấn SQL (JOIN, GROUP BY)
 
@@ -15,7 +17,7 @@
 | Thành phần | Công nghệ |
 |---|---|
 | Giao diện web | Streamlit |
-| Mô hình AI | ViSoBERT (transformers) |
+| Mô hình AI | ViSoBERT v2 (XLMRoberta - transformers) |
 | Cơ sở dữ liệu | SQLite |
 | Biểu đồ | Plotly |
 | Cào dữ liệu | youtube-comment-downloader |
@@ -24,8 +26,8 @@
 
 ### 1. Clone repository
 ```bash
-git clone https://github.com/<username>/BTLPython.git
-cd BTLPython
+git clone https://github.com/Sora3011/BTL_Python.git
+cd BTL_Python
 ```
 
 ### 2. Tạo môi trường ảo và cài thư viện
@@ -37,9 +39,10 @@ venv\Scripts\activate        # Windows
 pip install -r requirements.txt
 ```
 
-### 3. Tải model ViSoBERT
-Đặt các file model vào thư mục `Model_viso_bert/`:
+### 3. Tải model ViSoBERT v2
+Đặt các file model vào thư mục `Model_viso_bert_v2/`:
 - `config.json`
+- `inference_config.json`
 - `model.safetensors`
 - `tokenizer.json`
 - `tokenizer_config.json`
@@ -54,17 +57,18 @@ streamlit run app.py
 ## 📁 Cấu trúc dự án
 
 ```
-BTLPython/
-├── app.py                  # File chính chạy ứng dụng Streamlit
-├── requirements.txt        # Danh sách thư viện Python
-├── .gitignore              # Các file/thư mục bị bỏ qua khi commit
-├── README.md               # Tài liệu hướng dẫn (file này)
-├── Model_viso_bert/        # Thư mục chứa model ViSoBERT
+BTL_Python/
+├── app.py                      # File chính chạy ứng dụng Streamlit
+├── requirements.txt            # Danh sách thư viện Python
+├── .gitignore                  # Các file/thư mục bị bỏ qua khi commit
+├── README.md                   # Tài liệu hướng dẫn (file này)
+├── Model_viso_bert_v2/         # Thư mục chứa model ViSoBERT v2
 │   ├── config.json
-│   ├── model.safetensors   # (không đưa lên GitHub)
+│   ├── inference_config.json
+│   ├── model.safetensors       # (không đưa lên GitHub)
 │   ├── tokenizer.json
 │   └── tokenizer_config.json
-└── sentiment_analytics.db  # Database SQLite (tự tạo khi chạy)
+└── sentiment_analytics.db      # Database SQLite (tự tạo khi chạy)
 ```
 
 ## 👥 Nhóm thực hiện

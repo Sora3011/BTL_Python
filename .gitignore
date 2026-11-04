@@ -19,7 +19,7 @@ env/
 *.db
 
 # Model files (quá lớn cho GitHub)
-Model_viso_bert/model.safetensors
+Model_viso_bert/
 Model_viso_bert_v2/model.safetensors
 
 # OS

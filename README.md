@@ -58,17 +58,40 @@ streamlit run app.py
 
 ```
 BTL_Python/
-├── app.py                      # File chính chạy ứng dụng Streamlit
+├── app.py                      # Điểm khởi chạy ứng dụng Streamlit
 ├── requirements.txt            # Danh sách thư viện Python
-├── .gitignore                  # Các file/thư mục bị bỏ qua khi commit
-├── README.md                   # Tài liệu hướng dẫn (file này)
-├── Model_viso_bert_v2/         # Thư mục chứa model ViSoBERT v2
+├── .gitignore                  # Cấu hình bỏ qua tệp khi commit Git
+├── README.md                   # Tài liệu hướng dẫn sử dụng
+├── Model_viso_bert_v2/         # Thư mục chứa mô hình ViSoBERT v2
 │   ├── config.json
 │   ├── inference_config.json
 │   ├── model.safetensors       # (không đưa lên GitHub)
 │   ├── tokenizer.json
 │   └── tokenizer_config.json
-└── sentiment_analytics.db      # Database SQLite (tự tạo khi chạy)
+├── sentiment_analytics.db      # Cơ sở dữ liệu SQLite
+├── frontend/                   # Giao diện người dùng
+│   ├── assets/
+│   │   └── style.css           # Định kiểu giao diện CSS
+│   ├── components/             # Các thành phần giao diện tái sử dụng
+│   │   ├── style_loader.py     # Nạp file CSS vào Streamlit
+│   │   ├── header.py           # Tiêu đề và thông tin phân hệ
+│   │   ├── sidebar.py          # Thanh điều hướng và thông số hệ thống
+│   │   ├── cards.py            # Thẻ thống kê và hiển thị kết quả
+│   │   └── charts.py           # Biểu đồ trực quan hóa dữ liệu
+│   └── views/                  # Các màn hình phân hệ
+│       ├── overview_view.py    # Phân hệ Tổng quan & Phân tích dữ liệu
+│       ├── youtube_view.py     # Phân hệ Thu thập & Phân tích YouTube
+│       └── facebook_view.py    # Phân hệ Phân tích bình luận Facebook
+└── backend/                    # Xử lý dữ liệu và mô hình AI
+    ├── database/
+    │   └── db.py               # Thao tác và kết nối cơ sở dữ liệu SQLite
+    ├── models/
+    │   └── sentiment_model.py  # Nạp mô hình ViSoBERT v2 và dự đoán cảm xúc
+    ├── scrapers/
+    │   ├── text_preprocessor.py # Tiền xử lý và làm sạch văn bản
+    │   └── youtube_scraper.py  # Thu thập bình luận từ YouTube
+    └── services/
+        └── analysis_service.py # Điều phối luồng xử lý và lưu trữ dữ liệu
 ```
 
 ## 👥 Nhóm thực hiện

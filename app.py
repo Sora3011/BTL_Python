@@ -11,7 +11,7 @@ from frontend.views.facebook_view import render_facebook_view
 # THIẾT LẬP HỆ THỐNG & ROUTER TRUNG TÂM
 # ==============================================================================
 st.set_page_config(
-    page_title="ViSoBERT Studio • Phân Tích Cảm Xúc Mạng Xã Hội",
+    page_title="Sounds of Social • Phân Tích Cảm Xúc Mạng Xã Hội",
     page_icon="🔬",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -26,10 +26,8 @@ init_db()
 # Tải tài nguyên mô hình AI ViSoBERT v2
 tokenizer, model, device, inf_cfg = load_ai_model()
 
-# Hiển thị Thanh Thương Hiệu & Telemetry Hệ Thống
 render_top_header()
 
-# Bộ chuyển phân hệ Zero-Latency Tabs (Chuyển tab tức thì 0ms, không lag, giữ nguyên dữ liệu)
 tab_overview, tab_youtube, tab_facebook = st.tabs([
     ":material/insights: Tổng Quan & Phân Tích",
     ":material/smart_display: Khai Thác YouTube",

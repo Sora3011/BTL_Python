@@ -1,10 +1,50 @@
 import html
+from typing import List, Tuple
 import streamlit as st
 from frontend.components.style_loader import render_html
 
 def clean_author(name, max_len: int = 24) -> str:
     s = str(name).strip()
     return s[:max_len] + "..." if len(s) > max_len else s
+
+def render_terminal_console(placeholder, theme: str, steps: List[Tuple[str, str]], pct: float):
+    """
+    Hiển thị Thanh tiến trình Phương Án 3: Live Terminal Pipeline Console.
+    - theme: 'yt' hoặc 'fb'
+    - steps: Danh sách tuple (state, text) với state in {'done', 'active', 'pending'}
+    - pct: Tiến độ từ 0 đến 100
+    """
+    pct_clamped = min(max(float(pct), 0.0), 100.0)
+    theme_cls = "yt-theme" if theme == "yt" else "fb-theme"
+    fill_cls = "terminal-bar-fill-yt" if theme == "yt" else "terminal-bar-fill-fb"
+    active_cls = "active-yt" if theme == "yt" else "active-fb"
+
+    lines_html = []
+    for state, text in steps:
+        if state == "done":
+            prefix = "[✓]"
+            cls = "done"
+        elif state == "active":
+            prefix = "[●]"
+            cls = active_cls
+        else:
+            prefix = "[ ]"
+            cls = "pending"
+        lines_html.append(f'<div class="term-line {cls}"><span>{prefix}</span><span>{html.escape(text)}</span></div>')
+
+    joined_lines = "".join(lines_html)
+    markup = f"""
+    <div class="terminal-pipeline-wrap {theme_cls}">
+        <div class="terminal-console-box">
+            {joined_lines}
+        </div>
+        <div class="terminal-bar-track">
+            <div class="{fill_cls}" style="width: {pct_clamped:.1f}%;"></div>
+        </div>
+    </div>
+    """
+    with placeholder.container():
+        render_html(markup)
 
 def render_cockpit(
     total_cmt: int,
@@ -25,11 +65,6 @@ def render_cockpit(
 ):
     """Bố cục bất đối xứng: Asymmetric Sentiment Cockpit chuẩn phòng nghiên cứu hiện đại."""
     marker_pos = min(max(mean_score, 0), 100)
-    
-    # Tính Vector kéo cảm xúc (Polarity Momentum)
-    net_sentiment = pos_pct - neg_pct
-    momentum_label = f"+{net_sentiment:.1f}% Tích cực" if net_sentiment >= 0 else f"{net_sentiment:.1f}% Tiêu cực"
-    momentum_color = "#10b981" if net_sentiment >= 0 else "#f43f5e"
 
     cockpit_markup = f"""
     <div class="cockpit-matrix">
@@ -60,11 +95,6 @@ def render_cockpit(
                         <span>100 Tích cực</span>
                     </div>
                 </div>
-                <div class="cockpit-foot-meta">
-                    <span>Độ bất định (Entropy): <strong style="color: #cbd5e1;" class="mono-data">{mean_entropy:.3f}</strong></span>
-                    <span>Độ lệch thuần: <strong style="color: {momentum_color};" class="mono-data">{momentum_label}</strong></span>
-                    <span>Kênh dữ liệu: <strong style="color: #38bdf8;">{platform}</strong></span>
-                </div>
             </div>
         </div>
 
@@ -72,7 +102,6 @@ def render_cockpit(
         <div class="horizon-sentiment-deck">
             <div class="cockpit-head-row">
                 <span class="head-eyebrow">Cơ Cấu 4 Phân Lớp Ý Kiến</span>
-                <span style="font-size: 11px; font-family: 'JetBrains Mono', monospace; color: #94a3b8;">ViSoBERT v2 Classification</span>
             </div>
             <div class="horizon-stack">
                 <!-- Tích cực -->
@@ -146,13 +175,10 @@ def render_cockpit(
     render_html(cockpit_markup)
 
 def render_spotlight(pos_top, neg_top, mix_top):
-    """Hiển thị Lăng kính tiếng nói đại diện (Audience Voice Spotlight) 3 thái cực đặc trưng."""
+    """Hiển thị Top comments 3 thái cực đặc trưng."""
     st.markdown("""
-    <div style="font-size:15px; font-weight:700; color:#f8fafc; margin-top:22px; margin-bottom:4px; letter-spacing:-0.01em;">
-        Lăng Kính Tiếng Nói Đại Diện (Audience Voice Spotlight)
-    </div>
-    <div style="font-size:12.5px; color:#94a3b8; margin-bottom:14px;">
-        Trích xuất 3 thái cực ý kiến tiêu biểu nhất từ tập dữ liệu nhằm phục vụ đối soát định tính và kiểm chứng mô hình:
+    <div style="font-size:15px; font-weight:700; color:#f8fafc; margin-top:22px; margin-bottom:14px; letter-spacing:-0.01em;">
+        Top comments:
     </div>
     """, unsafe_allow_html=True)
 
@@ -169,7 +195,6 @@ def render_spotlight(pos_top, neg_top, mix_top):
             </div>
             <div class="voice-card-foot">
                 <span>Tác giả: <strong style="color:#ffffff;">{html.escape(clean_author(pos_top['author']))}</strong></span>
-                <span class="mono-data" style="color: #34d399;">Xác suất +: {pos_top['pos_score']:.1f}%</span>
             </div>
         </div>
 
@@ -184,7 +209,6 @@ def render_spotlight(pos_top, neg_top, mix_top):
             </div>
             <div class="voice-card-foot">
                 <span>Tác giả: <strong style="color:#ffffff;">{html.escape(clean_author(neg_top['author']))}</strong></span>
-                <span class="mono-data" style="color: #fb7185;">Xác suất -: {neg_top['neg_score']:.1f}%</span>
             </div>
         </div>
 
@@ -199,7 +223,6 @@ def render_spotlight(pos_top, neg_top, mix_top):
             </div>
             <div class="voice-card-foot">
                 <span>Tác giả: <strong style="color:#ffffff;">{html.escape(clean_author(mix_top['author']))}</strong></span>
-                <span style="color: #c084fc; font-weight: 600;">Vừa khen vừa chê</span>
             </div>
         </div>
     </div>

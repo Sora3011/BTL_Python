@@ -1,6 +1,6 @@
 import os
 import json
-from typing import Tuple, List, Dict, Any
+from typing import Tuple, List, Dict, Any, Optional, Callable
 import torch
 import torch.nn.functional as F
 import numpy as np
@@ -40,7 +40,8 @@ def predict_batch_comments(
     tokenizer: Any,
     model: Any,
     device: torch.device,
-    inf_cfg: Dict[str, Any]
+    inf_cfg: Dict[str, Any],
+    on_progress: Optional[Callable[[int, int], None]] = None
 ) -> List[Tuple[str, str, float, float, float, float, float, str]]:
     """
     Suy luận dự đoán nhãn cảm xúc với Temperature Scaling (T=1.3).
@@ -50,9 +51,10 @@ def predict_batch_comments(
     T = float(inf_cfg.get("temperature", 1.3))
     emoji_mode = inf_cfg.get("emoji_mode", "keep")
     max_len = int(inf_cfg.get("max_len", 128))
+    total = len(comments_list)
     
     results = []
-    for item in comments_list:
+    for idx, item in enumerate(comments_list, start=1):
         raw_text = item["text"]
         author = item.get("author", "Ẩn danh")
         processed = clean_text(raw_text, emoji_mode=emoji_mode) or "..."
@@ -86,4 +88,6 @@ def predict_batch_comments(
             entropy,
             label
         ))
+        if on_progress is not None:
+            on_progress(idx, total)
     return results

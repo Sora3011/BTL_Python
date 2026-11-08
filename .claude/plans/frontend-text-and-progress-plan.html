@@ -1,0 +1,1468 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Giao Diện Trực Quan Click-to-Delete — ViSoBERT Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-void: #07090e;
+    --bg-surface: #0d121c;
+    --bg-surface-elevated: #131a29;
+    --bg-surface-glass: rgba(13, 18, 28, 0.78);
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-glass: rgba(255, 255, 255, 0.12);
+    --cyan-primary: #0ea5e9;
+    --cyan-bright: #38bdf8;
+    --emerald-pos: #10b981;
+    --slate-neu: #94a3b8;
+    --iris-mix: #a855f7;
+    --rose-neg: #f43f5e;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-pill: 9999px;
+    --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background-color: var(--bg-void);
+    background-image:
+      radial-gradient(circle at 90% 8%, rgba(14, 165, 233, 0.08) 0%, transparent 45%),
+      radial-gradient(circle at 10% 92%, rgba(16, 185, 129, 0.05) 0%, transparent 50%),
+      radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.4) 0%, transparent 100%);
+    background-attachment: fixed;
+    color: #e2e8f0;
+    font-family: var(--font-sans);
+    padding: 16px 24px 120px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app-shell {
+    max-width: 1420px;
+    margin: 0 auto;
+  }
+
+  /* ==========================================================================
+     STICKY CONTROLLER BAR (ĐỂ XÁC NHẬN & GỬI KẾT QUẢ XOÁ VỀ AGENT)
+     ========================================================================== */
+  .canvas-control-bar {
+    position: sticky;
+    top: 10px;
+    z-index: 9999;
+    background: rgba(9, 13, 22, 0.94);
+    backdrop-filter: blur(20px);
+    border: 1.5px solid rgba(56, 189, 248, 0.45);
+    border-radius: 14px;
+    padding: 12px 18px;
+    margin-bottom: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.75);
+  }
+
+  .ctrl-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .ctrl-badge-info {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f8fafc;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .del-counter-badge {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(244, 63, 94, 0.18);
+    border: 1px solid rgba(244, 63, 94, 0.5);
+    color: #fda4af;
+  }
+
+  .design-counter-badge {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(14, 165, 233, 0.16);
+    border: 1px solid rgba(56, 189, 248, 0.45);
+    color: #38bdf8;
+  }
+
+  .ctrl-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .ctrl-btn {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 7px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border-glass);
+    background: rgba(255, 255, 255, 0.05);
+    color: #cbd5e1;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .ctrl-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+
+  .ctrl-btn.active-mode {
+    background: rgba(56, 189, 248, 0.18);
+    border-color: #38bdf8;
+    color: #38bdf8;
+  }
+
+  .ctrl-btn-submit {
+    background: linear-gradient(135deg, #0ea5e9 0%, #10b981 100%);
+    color: #041019;
+    border: none;
+    font-weight: 800;
+    padding: 8px 18px;
+    box-shadow: 0 0 20px rgba(14, 165, 233, 0.4);
+  }
+
+  .ctrl-btn-submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 26px rgba(16, 185, 129, 0.65);
+    color: #02080d;
+  }
+
+  /* ==========================================================================
+     IN-PLACE CLICKABLE TEXT ELEMENT MECHANICS (NHẤN VÀO CHỮ NÀO XOÁ CHỮ ĐÓ)
+     ========================================================================== */
+  label.tx-del {
+    display: inline-block;
+    position: relative;
+    cursor: pointer !important;
+    border-radius: 5px;
+    padding: 1px 4px;
+    margin: -1px -4px;
+    transition: all 0.14s ease;
+    border: 1px dashed transparent;
+    user-select: none;
+  }
+
+  label.tx-del:hover {
+    border-color: rgba(56, 189, 248, 0.75);
+    background: rgba(14, 165, 233, 0.14);
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+  }
+
+  label.tx-del:hover::after {
+    content: "🗑️ Click để xoá";
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #0f172a;
+    color: #fda4af;
+    border: 1px solid #f43f5e;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 5px;
+    white-space: nowrap;
+    z-index: 999;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+  }
+
+  label.tx-del.is-deleted {
+    background: rgba(244, 63, 94, 0.22) !important;
+    border: 1px solid rgba(244, 63, 94, 0.85) !important;
+    color: #fda4af !important;
+    text-decoration: line-through !important;
+    opacity: 0.72;
+  }
+
+  label.tx-del.is-deleted::before {
+    content: "🗑️ ";
+    font-size: 0.9em;
+    text-decoration: none;
+    display: inline-block;
+    margin-right: 3px;
+  }
+
+  label.tx-del.is-deleted:hover::after {
+    content: "↺ Click để khôi phục";
+    color: #34d399;
+    border-color: #10b981;
+  }
+
+  /* Block-level delete button on containers */
+  .block-del-wrap {
+    position: relative;
+    transition: all 0.2s ease;
+  }
+
+  .block-del-wrap.block-is-deleted {
+    outline: 2px dashed #f43f5e !important;
+    background: rgba(244, 63, 94, 0.06) !important;
+  }
+
+  .btn-del-block {
+    position: absolute;
+    top: -10px;
+    right: 12px;
+    z-index: 30;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: #131a29;
+    border: 1px solid rgba(244, 63, 94, 0.45);
+    color: #fda4af;
+    cursor: pointer;
+    transition: all 0.15s;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  }
+
+  .btn-del-block:hover {
+    background: #f43f5e;
+    color: #fff;
+  }
+
+  .block-del-wrap.block-is-deleted .btn-del-block {
+    background: #f43f5e;
+    color: #fff;
+  }
+
+  /* ==========================================================================
+     REAL FRONTEND REPLICA STYLES (FROM frontend/assets/style.css)
+     ========================================================================== */
+  .top-brand-dock {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, rgba(14, 20, 32, 0.88) 0%, rgba(9, 13, 22, 0.96) 100%);
+    backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-lg);
+    padding: 12px 20px;
+    margin-bottom: 16px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 10px 30px rgba(0, 0, 0, 0.4);
+    position: relative;
+  }
+
+  .nav-brand-section { display: flex; align-items: center; gap: 12px; }
+  .nav-brand-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.25) 0%, rgba(14, 165, 233, 0.05) 100%);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    display: flex; align-items: center; justify-content: center; color: #38bdf8;
+  }
+  .nav-brand-title { font-size: 17px; font-weight: 800; color: #ffffff; letter-spacing: -0.025em; line-height: 1.2; }
+  .nav-brand-sub { font-size: 11px; color: var(--text-secondary); font-family: var(--font-mono); margin-top: 2px; }
+  .nav-telemetry-cluster { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .nav-telemetry-chip {
+    display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px;
+    border-radius: var(--radius-pill); font-size: 11px; font-family: var(--font-mono);
+    background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); color: #cbd5e1;
+  }
+  .nav-dot-online { width: 6px; height: 6px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981; }
+
+  /* Floating Top Tabs Replica */
+  .tabs-dock-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .st-tab-list {
+    display: flex;
+    gap: 6px;
+    background: rgba(14, 20, 32, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-pill);
+    padding: 4px 6px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .st-tab-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: #94a3b8;
+    font-size: 13.5px;
+    font-weight: 600;
+    padding: 8px 22px;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .st-tab-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.06); }
+  .st-tab-btn.active {
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.28) 0%, rgba(2, 132, 199, 0.15) 100%);
+    border: 1px solid rgba(56, 189, 248, 0.5);
+    color: #ffffff;
+    font-weight: 700;
+    box-shadow: 0 0 16px rgba(14, 165, 233, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  }
+
+  /* Streamlit Container border=True Replica */
+  .st-bordered-container {
+    background: rgba(13, 18, 28, 0.72);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    margin-bottom: 16px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 24px rgba(0, 0, 0, 0.28);
+  }
+
+  .studio-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .studio-panel-title { font-size: 14.5px; font-weight: 700; color: #ffffff; }
+  .studio-panel-badge {
+    font-size: 10.5px; font-family: var(--font-mono); font-weight: 700;
+    color: var(--cyan-bright); background: rgba(14, 165, 233, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.3); padding: 2px 8px; border-radius: var(--radius-pill);
+  }
+
+  /* Dual Column Workbench */
+  .dual-workbench {
+    display: grid;
+    grid-template-columns: 1.35fr 1fr;
+    gap: 18px;
+    align-items: start;
+  }
+  @media (max-width: 980px) { .dual-workbench { grid-template-columns: 1fr; } }
+
+  /* Mock Form Controls */
+  .st-field-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e2e8f0;
+    margin-bottom: 6px;
+    display: block;
+  }
+  .st-mock-input {
+    width: 100%;
+    background: rgba(7, 10, 16, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 9px 12px;
+    color: #f8fafc;
+    font-size: 13px;
+    margin-bottom: 12px;
+    font-family: var(--font-sans);
+  }
+  .st-mock-textarea {
+    width: 100%;
+    background: rgba(7, 10, 16, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: #e2e8f0;
+    font-size: 12.5px;
+    line-height: 1.6;
+    margin-bottom: 8px;
+  }
+  .st-pills-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .st-pill-item {
+    border-radius: var(--radius-pill);
+    font-size: 12px;
+    padding: 4px 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-subtle);
+    color: #cbd5e1;
+  }
+  .st-segmented-row {
+    display: inline-flex;
+    gap: 4px;
+    background: rgba(14, 20, 32, 0.9);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-pill);
+    padding: 3px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .st-seg-item {
+    border-radius: var(--radius-pill);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 14px;
+    color: #94a3b8;
+  }
+  .st-seg-item.active {
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.28) 0%, rgba(2, 132, 199, 0.15) 100%);
+    border: 1px solid rgba(56, 189, 248, 0.5);
+    color: #fff;
+    font-weight: 700;
+  }
+  .st-cta-btn {
+    width: 100%;
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.22) 0%, rgba(14, 165, 233, 0.08) 100%);
+    border: 1px solid rgba(56, 189, 248, 0.45);
+    border-radius: 10px;
+    padding: 10px 16px;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 13.5px;
+    text-align: center;
+    margin-top: 6px;
+  }
+
+  /* Decoder & History Mini Cards */
+  .decoder-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 12px 0; }
+  .decoder-item {
+    background: rgba(10, 14, 22, 0.7); border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-md); padding: 8px 12px;
+    display: flex; justify-content: space-between; align-items: center; font-size: 12px;
+  }
+  .decoder-raw { font-family: var(--font-mono); color: #f1f5f9; font-weight: 700; }
+  .decoder-arrow { color: var(--text-muted); font-size: 10px; }
+  .decoder-token { font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
+
+  .history-mini-card {
+    background: rgba(10, 14, 22, 0.6); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md); padding: 10px 14px; margin-bottom: 8px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .history-card-title { font-size: 12.5px; font-weight: 600; color: #f1f5f9; }
+  .history-card-sub { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
+
+  /* Cockpit Matrix */
+  .cockpit-matrix { display: grid; grid-template-columns: 5fr 7fr; gap: 18px; margin-bottom: 20px; }
+  @media (max-width: 980px) { .cockpit-matrix { grid-template-columns: 1fr; } }
+  .core-gauge-cockpit, .horizon-sentiment-deck {
+    background: linear-gradient(145deg, rgba(16, 23, 38, 0.8) 0%, rgba(10, 15, 25, 0.9) 100%);
+    border: 1px solid var(--border-glass); border-radius: var(--radius-lg); padding: 22px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .cockpit-head-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .head-eyebrow { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+  .head-pill-count {
+    font-size: 11.5px; font-family: var(--font-mono); color: var(--cyan-bright);
+    background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(56, 189, 248, 0.2);
+    padding: 2px 8px; border-radius: var(--radius-pill);
+  }
+  .score-num-wrapper { display: flex; align-items: baseline; gap: 8px; }
+  .score-display-val { font-size: 46px; font-weight: 800; font-family: var(--font-mono); line-height: 1; color: #10b981; }
+  .score-display-max { font-size: 16px; font-weight: 500; color: var(--text-muted); font-family: var(--font-mono); }
+  .score-verdict-heading { font-size: 16.5px; font-weight: 700; margin-top: 8px; color: #10b981; }
+  .score-verdict-summary { font-size: 13px; color: var(--text-secondary); margin-top: 4px; line-height: 1.5; }
+  .spectrum-chassis { margin-top: 16px; }
+  .spectrum-rail {
+    width: 100%; height: 8px; border-radius: var(--radius-pill);
+    background: linear-gradient(90deg, #f43f5e 0%, #cbd5e1 50%, #10b981 100%);
+    position: relative; margin-bottom: 8px;
+  }
+  .spectrum-pin {
+    position: absolute; top: -5px; left: 78%; width: 18px; height: 18px;
+    border-radius: 50%; background: #fff; border: 3px solid #07090e; transform: translateX(-50%);
+  }
+  .spectrum-notches { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--text-muted); font-family: var(--font-mono); }
+  .cockpit-foot-meta {
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+    margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-subtle); font-size: 11.5px; color: var(--text-secondary);
+  }
+  .horizon-stack { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+  .sentiment-slot {
+    background: rgba(10, 14, 22, 0.7); border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-md); padding: 10px 14px;
+  }
+  .slot-header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .slot-identity { display: flex; align-items: center; gap: 9px; }
+  .slot-beacon { width: 8px; height: 8px; border-radius: 50%; }
+  .slot-label { font-size: 13px; font-weight: 700; color: #f1f5f9; }
+  .slot-metrics { display: flex; align-items: baseline; gap: 10px; }
+  .slot-count-str { font-size: 12px; color: var(--text-secondary); }
+  .slot-pct-str { font-size: 13.5px; font-weight: 800; font-family: var(--font-mono); }
+  .slot-meter-track { width: 100%; height: 6px; background: rgba(255, 255, 255, 0.06); border-radius: var(--radius-pill); overflow: hidden; }
+  .slot-meter-fluid { height: 100%; border-radius: var(--radius-pill); }
+
+  /* Audience Spotlight */
+  .audience-spotlight-matrix { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 14px 0 20px 0; }
+  @media (max-width: 960px) { .audience-spotlight-matrix { grid-template-columns: 1fr; } }
+  .voice-transcript-card {
+    background: linear-gradient(160deg, rgba(16, 23, 38, 0.85) 0%, rgba(10, 15, 24, 0.95) 100%);
+    border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);
+    padding: 16px 18px; display: flex; flex-direction: column; justify-content: space-between; min-height: 155px;
+  }
+  .voice-card-pos { border-top: 2px solid var(--emerald-pos); }
+  .voice-card-neg { border-top: 2px solid var(--rose-neg); }
+  .voice-card-mix { border-top: 2px solid var(--iris-mix); }
+  .voice-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .voice-persona-badge { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .voice-score-pill { font-size: 11px; font-family: var(--font-mono); font-weight: 700; padding: 2px 8px; border-radius: var(--radius-pill); }
+  .voice-quote-text { font-size: 13px; color: #e2e8f0; line-height: 1.55; margin-bottom: 12px; }
+  .voice-card-foot {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11.5px; color: var(--text-secondary); border-top: 1px solid var(--border-subtle); padding-top: 9px;
+  }
+
+  /* Instant Summary Receipt */
+  .instant-receipt-wrap {
+    background: linear-gradient(135deg, rgba(16, 24, 40, 0.9) 0%, rgba(9, 13, 22, 0.95) 100%);
+    border: 1px solid rgba(56, 189, 248, 0.3); border-radius: var(--radius-lg); padding: 16px 18px; margin: 14px 0;
+  }
+  .kpi-quad-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 12px; }
+  .kpi-mini-pod { background: rgba(7, 10, 16, 0.65); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 10px 12px; }
+  .kpi-mini-label { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
+  .kpi-mini-val { font-size: 18px; font-weight: 800; font-family: var(--font-mono); color: #fff; }
+
+  /* Tab View Visibility */
+  .tab-pane { display: none; }
+  .tab-pane.visible { display: block; }
+  .tab-section-divider {
+    display: none;
+    margin: 28px 0 14px;
+    padding: 8px 14px;
+    background: rgba(14, 165, 233, 0.1);
+    border-left: 3px solid #38bdf8;
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: #38bdf8;
+  }
+  body.show-all-tabs .tab-pane { display: block !important; margin-bottom: 32px; }
+  body.show-all-tabs .tab-section-divider { display: block !important; }
+
+  /* Progress Design Selector Section */
+  .design-picker-section {
+    margin-top: 38px;
+    padding-top: 24px;
+    border-top: 2px solid rgba(56, 189, 248, 0.25);
+  }
+  .design-card {
+    background: var(--bg-surface);
+    border: 2px solid var(--border-glass);
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 16px;
+    transition: all 0.2s;
+  }
+  .design-card.selected-design {
+    border-color: #38bdf8;
+    box-shadow: 0 0 25px rgba(56, 189, 248, 0.2);
+  }
+  .stepper-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
+  .step-pill { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 6px 8px; font-size: 11px; }
+  .step-pill.done { border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.08); color: #34d399; }
+  .step-pill.active-yt { border-color: rgba(248,113,113,0.6); background: rgba(239,68,68,0.14); color: #fff; }
+  .step-pill.active-fb { border-color: rgba(56,189,248,0.6); background: rgba(14,165,233,0.14); color: #fff; }
+</style>
+</head>
+<body class="show-all-tabs">
+
+<div class="app-shell">
+
+  <!-- ========================================================================
+       THANH ĐIỀU KHIỂN CANVAS (STICKY TOP)
+       ======================================================================== -->
+  <div class="canvas-control-bar">
+    <div class="ctrl-left">
+      <span class="ctrl-badge-info">🖱️ Giao diện thực tế (Click thẳng vào bất kỳ chữ hoặc khung nào để XOÁ)</span>
+      <span class="del-counter-badge" id="delCountBadge">Đã chọn xoá: 0 mục</span>
+      <span class="design-counter-badge" id="designChoiceBadge">Progress Bar: Phương Án 1 (Stepper HUD)</span>
+    </div>
+    <div class="ctrl-right">
+      <button type="button" class="ctrl-btn active-mode" id="btnToggleAllTabs">Đang mở: Tất cả 3 Tab cùng lúc</button>
+      <button type="button" class="ctrl-btn" id="btnResetAll">↺ Khôi phục toàn bộ</button>
+      <button type="button" class="ctrl-btn ctrl-btn-submit" id="text-audit-submit">
+        ✓ Xác nhận & Gửi lựa chọn về cho Agent
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       1. TOP BRAND DOCK (frontend/components/navbar.py)
+       ======================================================================== -->
+  <div class="top-brand-dock block-del-wrap" data-block-id="block_navbar_entire">
+    <button type="button" class="btn-del-block" data-block-target="block_navbar_entire">🗑️ Xoá cả thanh Header</button>
+    <div class="nav-brand-section">
+      <div class="nav-brand-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+      </div>
+      <div>
+        <div class="nav-brand-title">
+          <label class="tx-del" data-id="nav_brand_title" data-file="navbar.py:L25">ViSoBERT Studio</label>
+        </div>
+        <div class="nav-brand-sub">
+          <label class="tx-del" data-id="nav_brand_sub" data-file="navbar.py:L26">Neural Social Intelligence Observatory</label>
+        </div>
+      </div>
+    </div>
+    <div class="nav-telemetry-cluster">
+      <span class="nav-telemetry-chip">
+        <span class="nav-dot-online"></span>
+        <label class="tx-del" data-id="nav_chip_online" data-file="navbar.py:L31">ONLINE</label>
+      </span>
+      <span class="nav-telemetry-chip">
+        <label class="tx-del" data-id="nav_chip_device" data-file="navbar.py:L34-35">Thiet bi: <strong style="color: #38bdf8;">CUDA GPU</strong></label>
+      </span>
+      <span class="nav-telemetry-chip">
+        <label class="tx-del" data-id="nav_chip_model" data-file="navbar.py:L38-39">Mo hinh: <strong style="color: #cbd5e1;">ViSoBERT v2</strong></label>
+      </span>
+      <span class="nav-telemetry-chip">
+        <label class="tx-del" data-id="nav_chip_db" data-file="navbar.py:L42-43">CSDL: <strong style="color: #10b981;">12 bai | 640 cmt</strong></label>
+      </span>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       2. FLOATING TOP TABS (app.py)
+       ======================================================================== -->
+  <div class="tabs-dock-wrap">
+    <div class="st-tab-list">
+      <button type="button" class="st-tab-btn active" data-tab-switch="tab_overview">
+        <span>📊</span>
+        <label class="tx-del" data-id="app_tab_overview_lbl" data-file="app.py:L32">Tổng Quan & Phân Tích</label>
+      </button>
+      <button type="button" class="st-tab-btn" data-tab-switch="tab_youtube">
+        <span>▶️</span>
+        <label class="tx-del" data-id="app_tab_youtube_lbl" data-file="app.py:L33">Khai Thác YouTube</label>
+      </button>
+      <button type="button" class="st-tab-btn" data-tab-switch="tab_facebook">
+        <span>💬</span>
+        <label class="tx-del" data-id="app_tab_facebook_lbl" data-file="app.py:L34">Dữ Liệu Facebook</label>
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       TAB 1: TỔNG QUAN & PHÂN TÍCH (frontend/views/overview_view.py + cards.py + charts.py)
+       ======================================================================== -->
+  <div class="tab-section-divider">TAB 1: TỔNG QUAN & PHÂN TÍCH (overview_view.py, cards.py, charts.py)</div>
+  <div class="tab-pane visible" id="tab_overview">
+
+    <!-- Thanh chọn tập dữ liệu -->
+    <div class="st-bordered-container block-del-wrap" data-block-id="block_overview_toolbar">
+      <button type="button" class="btn-del-block" data-block-target="block_overview_toolbar">🗑️ Xoá thanh công cụ này</button>
+      <div style="display: grid; grid-template-columns: 3.5fr 1.2fr 1.3fr; gap: 12px; align-items: center;">
+        <div class="st-mock-input" style="margin-bottom: 0;">
+          <label class="tx-del" data-id="ov_select_post_format" data-file="overview_view.py:L23">Bản ghi #12 • [YouTube] https://www.youtube.com/watch?v=tpOkBUamk6M... (50 bình luận)</label>
+        </div>
+        <div class="st-cta-btn" style="margin-top: 0; background: rgba(255,255,255,0.04); border-color: var(--border-subtle);">
+          🔄 <label class="tx-del" data-id="ov_btn_refresh" data-file="overview_view.py:L33">Làm mới</label>
+        </div>
+        <div class="st-cta-btn" style="margin-top: 0; background: rgba(255,255,255,0.04); border-color: var(--border-subtle);">
+          ⬇️ <label class="tx-del" data-id="ov_btn_export_csv" data-file="overview_view.py:L42">Xuất file CSV</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Asymmetric Sentiment Cockpit -->
+    <div class="cockpit-matrix">
+      <!-- Cánh Trái Cockpit -->
+      <div class="core-gauge-cockpit block-del-wrap" data-block-id="block_cockpit_left">
+        <button type="button" class="btn-del-block" data-block-target="block_cockpit_left">🗑️ Xoá khung Điểm cảm xúc</button>
+        <div>
+          <div class="cockpit-head-row">
+            <span class="head-eyebrow">
+              <label class="tx-del" data-id="ck_eyebrow_left" data-file="cards.py:L40">Chỉ Số Tâm Lý Cộng Đồng</label>
+            </span>
+            <span class="head-pill-count">
+              <label class="tx-del" data-id="ck_pill_n_count" data-file="cards.py:L41">N = 50 ý kiến</label>
+            </span>
+          </div>
+          <div style="margin: 12px 0 18px 0;">
+            <div class="score-num-wrapper">
+              <span class="score-display-val">78.4</span>
+              <span class="score-display-max"><label class="tx-del" data-id="ck_score_max_100" data-file="cards.py:L46">/ 100</label></span>
+            </div>
+            <div class="score-verdict-heading">
+              <label class="tx-del" data-id="ck_verdict_title" data-file="overview_view.py:L68">Đồng Thuận Tán Thưởng Rất Cao</label>
+            </div>
+            <div class="score-verdict-summary">
+              <label class="tx-del" data-id="ck_verdict_desc" data-file="overview_view.py:L69">Đa số ý kiến cộng đồng bày tỏ sự ủng hộ, hài lòng và đánh giá tích cực với các chi tiết được đề cập.</label>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="spectrum-chassis">
+            <div class="spectrum-rail"><div class="spectrum-pin"></div></div>
+            <div class="spectrum-notches">
+              <span><label class="tx-del" data-id="ck_notch_0" data-file="cards.py:L58">0 Tiêu cực</label></span>
+              <span><label class="tx-del" data-id="ck_notch_50" data-file="cards.py:L59">50 Trung lập</label></span>
+              <span><label class="tx-del" data-id="ck_notch_100" data-file="cards.py:L60">100 Tích cực</label></span>
+            </div>
+          </div>
+          <div class="cockpit-foot-meta">
+            <span><label class="tx-del" data-id="ck_meta_entropy" data-file="cards.py:L64">Độ bất định (Entropy): <strong style="color: #cbd5e1;">0.412</strong></label></span>
+            <span><label class="tx-del" data-id="ck_meta_momentum" data-file="cards.py:L65">Độ lệch thuần: <strong style="color: #10b981;">+52.0% Tích cực</strong></label></span>
+            <span><label class="tx-del" data-id="ck_meta_platform" data-file="cards.py:L66">Kênh dữ liệu: <strong style="color: #38bdf8;">YouTube</strong></label></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cánh Phải Cockpit -->
+      <div class="horizon-sentiment-deck block-del-wrap" data-block-id="block_cockpit_right">
+        <button type="button" class="btn-del-block" data-block-target="block_cockpit_right">🗑️ Xoá khung 4 Phân lớp</button>
+        <div class="cockpit-head-row">
+          <span class="head-eyebrow">
+            <label class="tx-del" data-id="ck_eyebrow_right" data-file="cards.py:L74">Cơ Cấu 4 Phân Lớp Ý Kiến</label>
+          </span>
+          <span style="font-size: 11px; font-family: var(--font-mono); color: #94a3b8;">
+            <label class="tx-del" data-id="ck_sub_visobert" data-file="cards.py:L75">ViSoBERT v2 Classification</label>
+          </span>
+        </div>
+        <div class="horizon-stack">
+          <div class="sentiment-slot">
+            <div class="slot-header-flex">
+              <div class="slot-identity">
+                <div class="slot-beacon" style="background: #10b981;"></div>
+                <span class="slot-label"><label class="tx-del" data-id="ck_lbl_pos" data-file="cards.py:L83">Tích cực</label></span>
+              </div>
+              <div class="slot-metrics">
+                <span class="slot-count-str"><label class="tx-del" data-id="ck_cnt_unit" data-file="cards.py:L86">32 ý kiến</label></span>
+                <span class="slot-pct-str" style="color: #34d399;">64.0%</span>
+              </div>
+            </div>
+            <div class="slot-meter-track"><div class="slot-meter-fluid" style="width: 64%; background: linear-gradient(90deg, #059669, #10b981);"></div></div>
+          </div>
+          <div class="sentiment-slot">
+            <div class="slot-header-flex">
+              <div class="slot-identity">
+                <div class="slot-beacon" style="background: #94a3b8;"></div>
+                <span class="slot-label"><label class="tx-del" data-id="ck_lbl_neu" data-file="cards.py:L99">Trung tính</label></span>
+              </div>
+              <div class="slot-metrics">
+                <span class="slot-count-str">8 ý kiến</span>
+                <span class="slot-pct-str" style="color: #cbd5e1;">16.0%</span>
+              </div>
+            </div>
+            <div class="slot-meter-track"><div class="slot-meter-fluid" style="width: 16%; background: linear-gradient(90deg, #475569, #94a3b8);"></div></div>
+          </div>
+          <div class="sentiment-slot">
+            <div class="slot-header-flex">
+              <div class="slot-identity">
+                <div class="slot-beacon" style="background: #a855f7;"></div>
+                <span class="slot-label"><label class="tx-del" data-id="ck_lbl_mix" data-file="cards.py:L115">Hỗn hợp</label></span>
+              </div>
+              <div class="slot-metrics">
+                <span class="slot-count-str">4 ý kiến</span>
+                <span class="slot-pct-str" style="color: #c084fc;">8.0%</span>
+              </div>
+            </div>
+            <div class="slot-meter-track"><div class="slot-meter-fluid" style="width: 8%; background: linear-gradient(90deg, #7c3aed, #a855f7);"></div></div>
+          </div>
+          <div class="sentiment-slot">
+            <div class="slot-header-flex">
+              <div class="slot-identity">
+                <div class="slot-beacon" style="background: #f43f5e;"></div>
+                <span class="slot-label"><label class="tx-del" data-id="ck_lbl_neg" data-file="cards.py:L131">Tiêu cực</label></span>
+              </div>
+              <div class="slot-metrics">
+                <span class="slot-count-str">6 ý kiến</span>
+                <span class="slot-pct-str" style="color: #fb7185;">12.0%</span>
+              </div>
+            </div>
+            <div class="slot-meter-track"><div class="slot-meter-fluid" style="width: 12%; background: linear-gradient(90deg, #e11d48, #f43f5e);"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2 Biểu đồ Plotly (charts.py) -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px;">
+      <div class="st-bordered-container block-del-wrap" data-block-id="block_chart_donut">
+        <button type="button" class="btn-del-block" data-block-target="block_chart_donut">🗑️ Xoá biểu đồ tròn</button>
+        <div style="font-size:14px; font-weight:700; color:#f8fafc; margin-bottom:2px;">
+          <label class="tx-del" data-id="chart_donut_title" data-file="charts.py:L9">Cơ Cấu Tỷ Lệ Cảm Xúc Toàn Diện</label>
+        </div>
+        <div style="font-size:12px; color:#94a3b8; margin-bottom:14px;">
+          <label class="tx-del" data-id="chart_donut_caption" data-file="charts.py:L10">Tỷ lệ % của 4 nhóm phân lớp cảm xúc trên tập mẫu N = 50 ý kiến</label>
+        </div>
+        <div style="height: 170px; display: flex; align-items: center; justify-content: center; position: relative;">
+          <div style="width: 145px; height: 145px; border-radius: 50%; border: 18px solid #10b981; border-right-color: #64748b; border-bottom-color: #f43f5e; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+            <span style="font-size:11px; color:#94a3b8;"><label class="tx-del" data-id="chart_donut_center_lbl" data-file="charts.py:L39">Ưu thế</label></span>
+            <b style="font-size:14px; color:#fff;">Tích cực</b>
+            <span style="font-size:12px; color:#38bdf8; font-family:var(--font-mono); font-weight:700;">64.0%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="st-bordered-container block-del-wrap" data-block-id="block_chart_histogram">
+        <button type="button" class="btn-del-block" data-block-target="block_chart_histogram">🗑️ Xoá biểu đồ cột</button>
+        <div style="font-size:14px; font-weight:700; color:#f8fafc; margin-bottom:2px;">
+          <label class="tx-del" data-id="chart_hist_title" data-file="charts.py:L49">Phân Bổ Mật Độ Điểm Cảm Xúc (0 - 100)</label>
+        </div>
+        <div style="font-size:12px; color:#94a3b8; margin-bottom:14px;">
+          <label class="tx-del" data-id="chart_hist_caption" data-file="charts.py:L50">Khảo sát mức độ phân cực ý kiến theo 5 phân khoảng chuẩn hóa</label>
+        </div>
+        <div style="height: 170px; display: flex; align-items: flex-end; justify-content: space-around; padding: 10px 16px 24px; border-bottom: 1px solid var(--border-subtle); position: relative;">
+          <div style="text-align: center;"><div style="width: 36px; height: 25px; background: #f43f5e; border-radius: 4px 4px 0 0; margin: 0 auto;"></div><span style="font-size:10px; color:#94a3b8;"><label class="tx-del" data-id="chart_bin_1" data-file="charts.py:L53">0-20 Rất xấu</label></span></div>
+          <div style="text-align: center;"><div style="width: 36px; height: 35px; background: #fb7185; border-radius: 4px 4px 0 0; margin: 0 auto;"></div><span style="font-size:10px; color:#94a3b8;"><label class="tx-del" data-id="chart_bin_2" data-file="charts.py:L53">20-40 Tiêu cực</label></span></div>
+          <div style="text-align: center;"><div style="width: 36px; height: 55px; background: #94a3b8; border-radius: 4px 4px 0 0; margin: 0 auto;"></div><span style="font-size:10px; color:#94a3b8;"><label class="tx-del" data-id="chart_bin_3" data-file="charts.py:L53">40-60 Trung lập</label></span></div>
+          <div style="text-align: center;"><div style="width: 36px; height: 95px; background: #34d399; border-radius: 4px 4px 0 0; margin: 0 auto;"></div><span style="font-size:10px; color:#94a3b8;"><label class="tx-del" data-id="chart_bin_4" data-file="charts.py:L53">60-80 Tích cực</label></span></div>
+          <div style="text-align: center;"><div style="width: 36px; height: 120px; background: #10b981; border-radius: 4px 4px 0 0; margin: 0 auto;"></div><span style="font-size:10px; color:#94a3b8;"><label class="tx-del" data-id="chart_bin_5" data-file="charts.py:L53">80-100 Xuất sắc</label></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lăng Kính Tiếng Nói Đại Diện (Spotlight) -->
+    <div class="block-del-wrap" data-block-id="block_spotlight_entire" style="padding: 6px; border-radius: 14px; margin-bottom: 18px;">
+      <button type="button" class="btn-del-block" data-block-target="block_spotlight_entire">🗑️ Xoá cả mục Lăng kính đại diện</button>
+      <div style="font-size:15px; font-weight:700; color:#f8fafc; margin-bottom:4px;">
+        <label class="tx-del" data-id="spot_section_title" data-file="cards.py:L152">Lăng Kính Tiếng Nói Đại Diện (Audience Voice Spotlight)</label>
+      </div>
+      <div style="font-size:12.5px; color:#94a3b8; margin-bottom:14px;">
+        <label class="tx-del" data-id="spot_section_sub" data-file="cards.py:L155">Trích xuất 3 thái cực ý kiến tiêu biểu nhất từ tập dữ liệu nhằm phục vụ đối soát định tính và kiểm chứng mô hình:</label>
+      </div>
+      <div class="audience-spotlight-matrix">
+        <div class="voice-transcript-card voice-card-pos">
+          <div>
+            <div class="voice-card-head">
+              <span class="voice-persona-badge" style="color: #34d399;"><label class="tx-del" data-id="spot_badge_pos" data-file="cards.py:L165">● Tán Thưởng Cao Nhất</label></span>
+              <span class="voice-score-pill" style="background: rgba(16,185,129,0.15); color: #34d399;">96.5/100</span>
+            </div>
+            <div class="voice-quote-text">"Hàng dùng mượt mà, nhân viên hỗ trợ nhiệt tình lắm ạ 😍"</div>
+          </div>
+          <div class="voice-card-foot">
+            <span><label class="tx-del" data-id="spot_foot_author_lbl" data-file="cards.py:L171">Tác giả: <strong style="color:#fff;">@user_tech</strong></label></span>
+            <span style="color: #34d399; font-family: var(--font-mono);"><label class="tx-del" data-id="spot_foot_pos_prob" data-file="cards.py:L172">Xác suất +: 95.2%</label></span>
+          </div>
+        </div>
+
+        <div class="voice-transcript-card voice-card-neg">
+          <div>
+            <div class="voice-card-head">
+              <span class="voice-persona-badge" style="color: #fb7185;"><label class="tx-del" data-id="spot_badge_neg" data-file="cards.py:L180">● Ý Kiến Bất Bình Đáng Chú Ý</label></span>
+              <span class="voice-score-pill" style="background: rgba(244,63,94,0.15); color: #fb7185;">8.2/100</span>
+            </div>
+            <div class="voice-quote-text">"Làm ăn chán đời, gọi điện hotline không thèm nghe máy 😡"</div>
+          </div>
+          <div class="voice-card-foot">
+            <span>Tác giả: <strong style="color:#fff;">@khach_hang</strong></span>
+            <span style="color: #fb7185; font-family: var(--font-mono);"><label class="tx-del" data-id="spot_foot_neg_prob" data-file="cards.py:L187">Xác suất -: 91.8%</label></span>
+          </div>
+        </div>
+
+        <div class="voice-transcript-card voice-card-mix">
+          <div>
+            <div class="voice-card-head">
+              <span class="voice-persona-badge" style="color: #c084fc;"><label class="tx-del" data-id="spot_badge_mix" data-file="cards.py:L195">● Ý Kiến Đa Chiều / Phân Vân</label></span>
+              <span class="voice-score-pill" style="background: rgba(168,85,247,0.15); color: #c084fc;"><label class="tx-del" data-id="spot_pill_entropy" data-file="cards.py:L196">Entropy 0.98</label></span>
+            </div>
+            <div class="voice-quote-text">"Giao diện nhìn hơi đơn giản cơ mà dùng sướng tay phết =))"</div>
+          </div>
+          <div class="voice-card-foot">
+            <span>Tác giả: <strong style="color:#fff;">@reviewer_vn</strong></span>
+            <span style="color: #c084fc; font-weight: 600;"><label class="tx-del" data-id="spot_foot_mix_tag" data-file="cards.py:L202">Vừa khen vừa chê</label></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bộ Duyệt Bình Luận Chi Tiết (DATA_EXPLORER) -->
+    <div class="st-bordered-container block-del-wrap" data-block-id="block_data_explorer">
+      <button type="button" class="btn-del-block" data-block-target="block_data_explorer">🗑️ Xoá khung Tra cứu bình luận</button>
+      <div class="studio-panel-header">
+        <span class="studio-panel-title">
+          <label class="tx-del" data-id="exp_header_title" data-file="overview_view.py:L124">Duyệt & Tra Cứu Toàn Bộ Ý Kiến Đã Phân Tích</label>
+        </span>
+        <span class="studio-panel-badge">
+          <label class="tx-del" data-id="exp_header_badge" data-file="overview_view.py:L125">DATA_EXPLORER</label>
+        </span>
+      </div>
+      <div style="display: grid; grid-template-columns: 1.5fr 2.2fr 1.8fr; gap: 14px; margin-bottom: 10px;">
+        <div>
+          <span class="st-field-label"><label class="tx-del" data-id="exp_flt_class_lbl" data-file="overview_view.py:L132">Lọc theo phân lớp:</label></span>
+          <div class="st-mock-input">Tất cả phân lớp</div>
+        </div>
+        <div>
+          <span class="st-field-label"><label class="tx-del" data-id="exp_flt_kw_lbl" data-file="overview_view.py:L138">Tìm kiếm từ khóa nội dung:</label></span>
+          <div class="st-mock-input" style="color:#64748b;"><label class="tx-del" data-id="exp_flt_kw_ph" data-file="overview_view.py:L139">Nhập từ cần tìm...</label></div>
+        </div>
+        <div>
+          <span class="st-field-label"><label class="tx-del" data-id="exp_flt_score_lbl" data-file="overview_view.py:L144">Khoảng điểm (0 - 100):</label></span>
+          <div class="st-mock-input">0.0 ━━━━━━━━━━━ 100.0</div>
+        </div>
+      </div>
+      <div style="font-size: 12px; color: #94a3b8; margin-bottom: 10px;">
+        <label class="tx-del" data-id="exp_count_caption" data-file="overview_view.py:L159">Đang hiển thị 50 trên tổng số 50 bình luận phù hợp tiêu chí tra cứu.</label>
+      </div>
+      <div style="background: rgba(7, 10, 16, 0.7); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #cbd5e1; display: flex; justify-content: space-between;">
+        <span><label class="tx-del" data-id="exp_col_author" data-file="overview_view.py:L164">Người đăng</label></span>
+        <span><label class="tx-del" data-id="exp_col_raw_text" data-file="overview_view.py:L165">Nội dung bình luận</label></span>
+        <span><label class="tx-del" data-id="exp_col_score" data-file="overview_view.py:L166">Điểm (0-100)</label></span>
+        <span><label class="tx-del" data-id="exp_col_pos" data-file="overview_view.py:L167">% Tích cực</label></span>
+        <span><label class="tx-del" data-id="exp_col_neu" data-file="overview_view.py:L168">% Trung tính</label></span>
+        <span><label class="tx-del" data-id="exp_col_neg" data-file="overview_view.py:L169">% Tiêu cực</label></span>
+        <span><label class="tx-del" data-id="exp_col_entropy" data-file="overview_view.py:L170">Entropy</label></span>
+        <span><label class="tx-del" data-id="exp_col_label" data-file="overview_view.py:L171">Phân loại</label></span>
+      </div>
+    </div>
+
+    <!-- Cửa Sổ Minh Bạch Truy Vấn SQL -->
+    <div class="st-bordered-container block-del-wrap" data-block-id="block_sql_expander">
+      <button type="button" class="btn-del-block" data-block-target="block_sql_expander">🗑️ Xoá cả Cửa sổ SQL này</button>
+      <div style="font-size: 13.5px; font-weight: 700; color: #f8fafc; margin-bottom: 8px;">
+        <span>&lt;/&gt; </span>
+        <label class="tx-del" data-id="sql_expander_title" data-file="overview_view.py:L178">Cửa Sổ Minh Bạch Truy Vấn SQL Quan Hệ (SQLite JOIN & GROUP BY)</label>
+      </div>
+      <div style="font-size: 12.5px; color: #94a3b8; margin-bottom: 10px;">
+        <label class="tx-del" data-id="sql_expander_desc" data-file="overview_view.py:L180-181">Đoạn mã SQL sau được ứng dụng sử dụng để thực thi liên kết quan hệ 1-N giữa bảng posts và bảng comments, tính toán điểm trung bình và phân nhóm số lượng ý kiến theo 4 phân lớp cảm xúc:</label>
+      </div>
+      <div style="font-size:13.5px; font-weight:700; color:#cbd5e1; margin-top:10px;">
+        <label class="tx-del" data-id="sql_expander_table_heading" data-file="overview_view.py:L201">Bảng Dữ Liệu Kết Xuất Tổng Thể Từ CSDL:</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       TAB 2: KHAI THÁC YOUTUBE (frontend/views/youtube_view.py)
+       ======================================================================== -->
+  <div class="tab-section-divider">TAB 2: KHAI THÁC YOUTUBE (frontend/views/youtube_view.py)</div>
+  <div class="tab-pane" id="tab_youtube">
+    <div class="dual-workbench">
+      <!-- Cột Trái YouTube -->
+      <div>
+        <div class="st-bordered-container block-del-wrap" data-block-id="block_yt_left_station">
+          <div class="studio-panel-header">
+            <span class="studio-panel-title">
+              <label class="tx-del" data-id="yt_panel_title" data-file="youtube_view.py:L32">Trạm Khai Thác Bình Luận YouTube</label>
+            </span>
+            <span class="studio-panel-badge" style="color: #f87171; border-color: rgba(239, 68, 68, 0.35); background: rgba(239, 68, 68, 0.1);">
+              <label class="tx-del" data-id="yt_panel_badge" data-file="youtube_view.py:L33">YOUTUBE_CRAWLER</label>
+            </span>
+          </div>
+
+          <span class="st-field-label">
+            <label class="tx-del" data-id="yt_input_url_lbl" data-file="youtube_view.py:L50">Đường dẫn video YouTube:</label>
+          </span>
+          <div class="st-mock-input">https://www.youtube.com/watch?v=tpOkBUamk6M</div>
+
+          <span class="st-field-label">
+            <label class="tx-del" data-id="yt_pills_lbl" data-file="youtube_view.py:L57">Video thử nghiệm nhanh:</label>
+          </span>
+          <div class="st-pills-row">
+            <span class="st-pill-item"><label class="tx-del" data-id="yt_pill_opt1" data-file="youtube_view.py:L58">Review Công Nghệ (tpOkBUamk6M)</label></span>
+            <span class="st-pill-item"><label class="tx-del" data-id="yt_pill_opt2" data-file="youtube_view.py:L58">Bản Tin Xã Hội (etcYBI7L1D8)</label></span>
+          </div>
+
+          <!-- Dynamic Cinema Preview Card -->
+          <div class="block-del-wrap" data-block-id="block_yt_preview_card" style="display: grid; grid-template-columns: 1.3fr 3fr; gap: 12px; align-items: center; margin-bottom: 14px; position: relative;">
+            <button type="button" class="btn-del-block" data-block-target="block_yt_preview_card">🗑️ Xoá khung Preview Video</button>
+            <div style="background: #1e293b; height: 74px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #f87171; font-weight: 700; font-size: 12px;">
+              [Thumbnail Video]
+            </div>
+            <div style="background: rgba(10, 14, 22, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 12px 14px;">
+              <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px;">
+                <span style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); color: #f87171; font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 9999px;">
+                  <label class="tx-del" data-id="yt_prev_id_badge" data-file="youtube_view.py:L75">ID: tpOkBUamk6M</label>
+                </span>
+                <span style="font-size: 11px; color: #10b981;">
+                  <label class="tx-del" data-id="yt_prev_ready_txt" data-file="youtube_view.py:L76">● Sẵn sàng kết nối</label>
+                </span>
+              </div>
+              <div style="font-size: 11.5px; color: #cbd5e1; font-family: var(--font-mono);">
+                <label class="tx-del" data-id="yt_prev_url_code" data-file="youtube_view.py:L79">https://www.youtube.com/watch?v=tpOkBUamk6M...</label>
+              </div>
+            </div>
+          </div>
+
+          <div style="font-size:12.5px; font-weight:600; color:#cbd5e1; margin-bottom:6px;">
+            <label class="tx-del" data-id="yt_depth_heading" data-file="youtube_view.py:L85">Độ sâu thu thập bình luận:</label>
+          </div>
+          <div class="st-segmented-row">
+            <span class="st-seg-item"><label class="tx-del" data-id="yt_depth_20" data-file="youtube_view.py:L88">20 ý kiến</label></span>
+            <span class="st-seg-item active"><label class="tx-del" data-id="yt_depth_50" data-file="youtube_view.py:L88">50 ý kiến</label></span>
+            <span class="st-seg-item"><label class="tx-del" data-id="yt_depth_100" data-file="youtube_view.py:L88">100 ý kiến</label></span>
+            <span class="st-seg-item"><label class="tx-del" data-id="yt_depth_200" data-file="youtube_view.py:L88">200 ý kiến</label></span>
+          </div>
+
+          <div class="st-cta-btn">
+            ▶ <label class="tx-del" data-id="yt_btn_start" data-file="youtube_view.py:L98">Bắt đầu thu thập & phân tích</label>
+          </div>
+        </div>
+
+        <!-- Thông báo & Biên Bản Phân Tích Tức Thì sau khi chạy -->
+        <div class="instant-receipt-wrap block-del-wrap" data-block-id="block_instant_summary_pod">
+          <button type="button" class="btn-del-block" data-block-target="block_instant_summary_pod">🗑️ Xoá khối Biên bản tức thì</button>
+          <div style="font-size: 12px; color: #34d399; margin-bottom: 10px;">
+            <label class="tx-del" data-id="yt_success_alert" data-file="youtube_view.py:L117">Hoàn tất thu thập và phân tích 50 ý kiến YouTube! Đã lưu CSDL với mã bản ghi #12.</label>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 15px; font-weight: 700; color: #ffffff;">
+              <label class="tx-del" data-id="inst_receipt_title" data-file="cards.py:L220">Biên Bản Phân Tích Dữ Liệu Tức Thì</label>
+            </div>
+            <span class="studio-panel-badge">
+              <label class="tx-del" data-id="inst_receipt_badge" data-file="cards.py:L223">BẢN GHI #12</label>
+            </span>
+          </div>
+          <div class="kpi-quad-row">
+            <div class="kpi-mini-pod">
+              <div class="kpi-mini-label"><label class="tx-del" data-id="inst_kpi_total" data-file="cards.py:L228">Tổng số ý kiến</label></div>
+              <div class="kpi-mini-val">50</div>
+            </div>
+            <div class="kpi-mini-pod">
+              <div class="kpi-mini-label"><label class="tx-del" data-id="inst_kpi_avg" data-file="cards.py:L232">Điểm trung bình</label></div>
+              <div class="kpi-mini-val" style="color: #38bdf8;">78.4 <span style="font-size: 12px; color: #64748b;">/ 100</span></div>
+            </div>
+            <div class="kpi-mini-pod">
+              <div class="kpi-mini-label"><label class="tx-del" data-id="inst_kpi_pos" data-file="cards.py:L236">Ý kiến tích cực</label></div>
+              <div class="kpi-mini-val" style="color: #10b981;">32</div>
+            </div>
+            <div class="kpi-mini-pod">
+              <div class="kpi-mini-label"><label class="tx-del" data-id="inst_kpi_neg" data-file="cards.py:L240">Ý kiến tiêu cực</label></div>
+              <div class="kpi-mini-val" style="color: #f43f5e;">6</div>
+            </div>
+          </div>
+          <div style="font-size: 12px; color: #94a3b8; margin-top: 12px;">
+            <label class="tx-del" data-id="inst_preview_caption" data-file="cards.py:L248">Xem trước các ý kiến đầu tiên trong tập dữ liệu vừa nạp:</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cột Phải YouTube -->
+      <div>
+        <!-- Khối 1: Cơ Chế Scraper -->
+        <div class="st-bordered-container block-del-wrap" data-block-id="block_yt_right_scraper_info">
+          <button type="button" class="btn-del-block" data-block-target="block_yt_right_scraper_info">🗑️ Xoá cả hộp Cơ chế Scraper</button>
+          <div class="studio-panel-header">
+            <span class="studio-panel-title">
+              <label class="tx-del" data-id="yt_right_box1_title" data-file="youtube_view.py:L134">Cơ Chế Scraper YouTube Tự Động</label>
+            </span>
+            <span class="studio-panel-badge">
+              <label class="tx-del" data-id="yt_right_box1_badge" data-file="youtube_view.py:L135">HEADLESS_STREAM</label>
+            </span>
+          </div>
+          <div style="font-size: 12px; color: #94a3b8; line-height: 1.75; display: flex; flex-direction: column; gap: 6px;">
+            <div><label class="tx-del" data-id="yt_right_bullet1" data-file="youtube_view.py:L138">• <strong>Không phụ thuộc Quota:</strong> Thu thập qua stream luồng công khai, không bị chặn bởi hạn ngạch 10.000 units/ngày của Google Cloud API.</label></div>
+            <div><label class="tx-del" data-id="yt_right_bullet2" data-file="youtube_view.py:L139">• <strong>Sắp xếp ưu tiên:</strong> Tự động bóc tách theo thứ tự phổ biến (Sort by Popularity) để bắt kịp các ý kiến đại diện nhất.</label></div>
+            <div><label class="tx-del" data-id="yt_right_bullet3" data-file="youtube_view.py:L140">• <strong>Bảo vệ định danh:</strong> Tự động ẩn danh hóa và chuẩn hóa mã định danh tác giả.</label></div>
+          </div>
+        </div>
+
+        <!-- Khối 2: Video YouTube Đã Phân Tích -->
+        <div class="st-bordered-container block-del-wrap" data-block-id="block_yt_right_history">
+          <button type="button" class="btn-del-block" data-block-target="block_yt_right_history">🗑️ Xoá cả hộp Lịch sử YouTube</button>
+          <div class="studio-panel-header">
+            <span class="studio-panel-title">
+              <label class="tx-del" data-id="yt_right_box2_title" data-file="youtube_view.py:L148">Video YouTube Đã Phân Tích</label>
+            </span>
+            <span class="studio-panel-badge">
+              <label class="tx-del" data-id="yt_right_box2_badge" data-file="youtube_view.py:L149">SQLITE_STORE</label>
+            </span>
+          </div>
+          <div class="history-mini-card">
+            <div>
+              <div class="history-card-title"><label class="tx-del" data-id="yt_hist_item_title" data-file="youtube_view.py:L162">#12 • Video [tpOkBUamk6M]</label></div>
+              <div class="history-card-sub"><label class="tx-del" data-id="yt_hist_item_time" data-file="youtube_view.py:L163">2026-11-08 21:00</label></div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-family: var(--font-mono); font-size: 13.5px; font-weight: 700; color: #10b981;">78.4<span style="font-size: 10px; color: #64748b;">/100</span></div>
+              <div style="font-size: 10.5px; color: #94a3b8;"><label class="tx-del" data-id="yt_hist_item_cnt" data-file="youtube_view.py:L169">50 bình luận</label></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       TAB 3: DỮ LIỆU FACEBOOK (frontend/views/facebook_view.py)
+       ======================================================================== -->
+  <div class="tab-section-divider">TAB 3: DỮ LIỆU FACEBOOK (frontend/views/facebook_view.py)</div>
+  <div class="tab-pane" id="tab_facebook">
+    <div class="dual-workbench">
+      <!-- Cột Trái Facebook -->
+      <div>
+        <div class="st-bordered-container block-del-wrap" data-block-id="block_fb_left_station">
+          <div class="studio-panel-header">
+            <span class="studio-panel-title">
+              <label class="tx-del" data-id="fb_panel_title" data-file="facebook_view.py:L25">Trạm Nhập Liệu Bình Luận Facebook</label>
+            </span>
+            <span class="studio-panel-badge">
+              <label class="tx-del" data-id="fb_panel_badge" data-file="facebook_view.py:L26">INGESTION_STATION</label>
+            </span>
+          </div>
+
+          <span class="st-field-label">
+            <label class="tx-del" data-id="fb_input_title_lbl" data-file="facebook_view.py:L40">Định danh bài đăng / Fanpage:</label>
+          </span>
+          <div class="st-mock-input">Bài đăng Fanpage</div>
+
+          <span class="st-field-label">
+            <label class="tx-del" data-id="fb_pills_lbl" data-file="facebook_view.py:L47">Gợi ý nhãn nhanh:</label>
+          </span>
+          <div class="st-pills-row">
+            <span class="st-pill-item"><label class="tx-del" data-id="fb_pill_1" data-file="facebook_view.py:L48">Feedback Khách Hàng</label></span>
+            <span class="st-pill-item"><label class="tx-del" data-id="fb_pill_2" data-file="facebook_view.py:L48">Chiến Dịch Truyền Thông</label></span>
+            <span class="st-pill-item"><label class="tx-del" data-id="fb_pill_3" data-file="facebook_view.py:L48">Trải Nghiệm Dịch Vụ</label></span>
+            <span class="st-pill-item"><label class="tx-del" data-id="fb_pill_4" data-file="facebook_view.py:L48">Review Sản Phẩm</label></span>
+          </div>
+
+          <div class="st-segmented-row">
+            <span class="st-seg-item active">📝 <label class="tx-del" data-id="fb_mode_direct" data-file="facebook_view.py:L57">Soạn thảo trực tiếp</label></span>
+            <span class="st-seg-item">📂 <label class="tx-del" data-id="fb_mode_csv" data-file="facebook_view.py:L57">Tải lên tệp CSV</label></span>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 10px;">
+            <span style="font-size: 12px; color: #94a3b8;">
+              <label class="tx-del" data-id="fb_textarea_caption" data-file="facebook_view.py:L69">Dán các bình luận (mỗi bình luận đặt trên 1 dòng riêng biệt):</label>
+            </span>
+            <span style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 5px 12px; font-size: 12px; font-weight: 600;">
+              ➕ <label class="tx-del" data-id="fb_btn_load_sample" data-file="facebook_view.py:L71">Nạp dữ liệu mẫu</label>
+            </span>
+          </div>
+
+          <div class="st-mock-textarea">
+            Hàng dùng mượt mà, nhân viên hỗ trợ nhiệt tình lắm ạ 😍<br>
+            Giao diện nhìn hơi đơn giản cơ mà dùng sướng tay phết =))<br>
+            Làm ăn chán đời, gọi điện hotline không thèm nghe máy 😡
+          </div>
+
+          <div style="display: flex; gap: 10px; margin: 6px 0 14px; font-size: 11.5px; color: #94a3b8; font-family: var(--font-mono);">
+            <span><label class="tx-del" data-id="fb_detect_count_txt" data-file="facebook_view.py:L97">Phát hiện: <strong style="color: #38bdf8;">6 bình luận</strong></label></span>
+            <span>•</span>
+            <span><label class="tx-del" data-id="fb_clean_status_txt" data-file="facebook_view.py:L99">Chuẩn hóa: <strong style="color: #10b981;">Tự động làm sạch & map token</strong></label></span>
+          </div>
+
+          <div class="st-cta-btn">
+            ▶ <label class="tx-del" data-id="fb_btn_start" data-file="facebook_view.py:L122">Khởi chạy suy luận ViSoBERT v2</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cột Phải Facebook -->
+      <div>
+        <!-- Khối 1: Bộ Tiền Xử Lý Tiếng Việt -->
+        <div class="st-bordered-container block-del-wrap" data-block-id="block_fb_right_preprocessor">
+          <button type="button" class="btn-del-block" data-block-target="block_fb_right_preprocessor">🗑️ Xoá cả hộp Tiền xử lý này</button>
+          <div class="studio-panel-header">
+            <span class="studio-panel-title">
+              <label class="tx-del" data-id="fb_right_box1_title" data-file="facebook_view.py:L154">Bộ Tiền Xử Lý Tiếng Việt (ViSoBERT)</label>
+            </span>
+            <span class="studio-panel-badge" style="color: #34d399; border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.1);">
+              <label class="tx-del" data-id="fb_right_box1_badge" data-file="facebook_view.py:L155">NLP_PREPROCESSOR</label>
+            </span>
+          </div>
+          <div style="font-size: 12.5px; color: #94a3b8; line-height: 1.5; margin-bottom: 12px;">
+            <label class="tx-del" data-id="fb_right_box1_desc" data-file="facebook_view.py:L158">Mô hình tự động bóc tách và chuyển dịch biểu cảm phi cấu trúc sang tokens ngữ nghĩa chuẩn hóa:</label>
+          </div>
+          <div class="decoder-grid">
+            <div class="decoder-item"><span class="decoder-raw"><label class="tx-del" data-id="fb_dec_1" data-file="facebook_view.py:L162">😍 🥰 ➔ yeu_thich</label></span></div>
+            <div class="decoder-item"><span class="decoder-raw"><label class="tx-del" data-id="fb_dec_2" data-file="facebook_view.py:L167">=)) :)) ➔ cuoi_vui</label></span></div>
+            <div class="decoder-item"><span class="decoder-raw"><label class="tx-del" data-id="fb_dec_3" data-file="facebook_view.py:L172">😡 🤬 ➔ tuc_gian</label></span></div>
+            <div class="decoder-item"><span class="decoder-raw"><label class="tx-del" data-id="fb_dec_4" data-file="facebook_view.py:L177">chán đời ➔ that_vong</label></span></div>
+            <div class="decoder-item"><span class="decoder-raw"><label class="tx-del" data-id="fb_dec_5" data-file="facebook_view.py:L182">:3 ... ➔ phan_van</label></span></div>
+            <div class="decoder-item"><span class="decoder-raw"><label class="tx-del" data-id="fb_dec_6" data-file="facebook_view.py:L187">ngonnnn ➔ ngon</label></span></div>
+          </div>
+        </div>
+
+        <!-- Khối 2: Bản Ghi Facebook Đã Lưu Trữ -->
+        <div class="st-bordered-container block-del-wrap" data-block-id="block_fb_right_history">
+          <button type="button" class="btn-del-block" data-block-target="block_fb_right_history">🗑️ Xoá cả hộp Lịch sử Facebook</button>
+          <div class="studio-panel-header">
+            <span class="studio-panel-title">
+              <label class="tx-del" data-id="fb_right_box2_title" data-file="facebook_view.py:L198">Bản Ghi Facebook Đã Lưu Trữ</label>
+            </span>
+            <span class="studio-panel-badge">
+              <label class="tx-del" data-id="fb_right_box2_badge" data-file="facebook_view.py:L199">SQLITE_STORE</label>
+            </span>
+          </div>
+          <div class="history-mini-card">
+            <div>
+              <div class="history-card-title"><label class="tx-del" data-id="fb_hist_item_title" data-file="facebook_view.py:L211">#11 • Bài đăng Fanpage</label></div>
+              <div class="history-card-sub"><label class="tx-del" data-id="fb_hist_item_time" data-file="facebook_view.py:L212">2026-11-08 20:45</label></div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-family: var(--font-mono); font-size: 13.5px; font-weight: 700; color: #38bdf8;">65.2<span style="font-size: 10px; color: #64748b;">/100</span></div>
+              <div style="font-size: 10.5px; color: #94a3b8;"><label class="tx-del" data-id="fb_hist_item_cnt" data-file="facebook_view.py:L218">6 bình luận</label></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       PHẦN 2: CHỌN MẪU THIẾT KẾ THANH TIẾN TRÌNH CHO YOUTUBE & FACEBOOK
+       ======================================================================== -->
+  <div class="design-picker-section">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+      <div>
+        <h2 style="font-size: 18px; font-weight: 800; color: #fff;">⚡ Lựa Chọn Thiết Kế Thanh Tiến Trình Riêng Biệt (YouTube vs Facebook)</h2>
+        <p style="font-size: 12.5px; color: #94a3b8;">Click chọn 1 trong 3 phương án thiết kế bên dưới cho thanh tiến trình sau khi bấm nút bắt đầu:</p>
+      </div>
+    </div>
+
+    <!-- Option 1 -->
+    <div class="design-card selected-design" data-design-id="option_1_stepper_hud">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div style="font-size: 15px; font-weight: 800; color: #fff;">
+          Phương Án 1 (Recommended): Cybernetic 4-Stage Stepper HUD + Live Stream Ticker
+        </div>
+        <button type="button" class="ctrl-btn active-mode btn-pick-design" data-pick="option_1_stepper_hud">✓ Đang chọn Phương Án 1</button>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+        <div style="background: rgba(10,14,22,0.9); border: 1px solid rgba(248,113,113,0.35); border-top: 2px solid #f87171; border-radius: 12px; padding: 14px;">
+          <div style="display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:11.5px; color:#f87171; font-weight:700; margin-bottom:8px;">
+            <span>● YOUTUBE STREAM PIPELINE</span><span>68% (34/50)</span>
+          </div>
+          <div class="stepper-grid">
+            <div class="step-pill done">01. Kết nối ✓</div>
+            <div class="step-pill done">02. Cào 50 cmt ✓</div>
+            <div class="step-pill active-yt">03. ViSoBERT ●</div>
+            <div class="step-pill">04. Lưu SQLite</div>
+          </div>
+          <div style="height:7px; background:rgba(255,255,255,0.06); border-radius:99px; overflow:hidden; margin-bottom:8px;">
+            <div style="width:68%; height:100%; background:linear-gradient(90deg, #ef4444, #f97316, #38bdf8);"></div>
+          </div>
+          <div style="font-family:var(--font-mono); font-size:11px; color:#94a3b8;">⚡ Đang suy luận #34/50: "Video phân tích chi tiết quá..."</div>
+        </div>
+
+        <div style="background: rgba(10,14,22,0.9); border: 1px solid rgba(56,189,248,0.35); border-top: 2px solid #38bdf8; border-radius: 12px; padding: 14px;">
+          <div style="display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:11.5px; color:#38bdf8; font-weight:700; margin-bottom:8px;">
+            <span>● FACEBOOK NLP PIPELINE</span><span>75% (45/60)</span>
+          </div>
+          <div class="stepper-grid">
+            <div class="step-pill done">01. Đọc dòng/CSV ✓</div>
+            <div class="step-pill done">02. Khử Teencode ✓</div>
+            <div class="step-pill active-fb">03. ViSoBERT ●</div>
+            <div class="step-pill">04. Lưu SQLite</div>
+          </div>
+          <div style="height:7px; background:rgba(255,255,255,0.06); border-radius:99px; overflow:hidden; margin-bottom:8px;">
+            <div style="width:75%; height:100%; background:linear-gradient(90deg, #0ea5e9, #a855f7, #10b981);"></div>
+          </div>
+          <div style="font-family:var(--font-mono); font-size:11px; color:#94a3b8;">🧬 Đang suy luận #45/60: "Giao diện nhìn hơi đơn giản..."</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Option 2 -->
+    <div class="design-card" data-design-id="option_2_segmented_telemetry">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <div style="font-size: 15px; font-weight: 800; color: #fff;">
+          Phương Án 2: Segmented Telemetry LED Bar (Thanh Chia Vạch Lượng Tử Gọn Nhẹ)
+        </div>
+        <button type="button" class="ctrl-btn btn-pick-design" data-pick="option_2_segmented_telemetry">Chọn Phương Án 2</button>
+      </div>
+      <div style="font-size: 12px; color: #94a3b8;">Hiển thị dải 20 vạch LED sáng dần theo tiến độ cào/phân tích cùng đồng hồ % lớn trên 1 dòng gọn gàng.</div>
+    </div>
+
+    <!-- Option 3 -->
+    <div class="design-card" data-design-id="option_3_terminal_console">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <div style="font-size: 15px; font-weight: 800; color: #fff;">
+          Phương Án 3: Live Terminal Pipeline Console (Bảng Log Kỹ Thuật Thời Gian Thực)
+        </div>
+        <button type="button" class="ctrl-btn btn-pick-design" data-pick="option_3_terminal_console">Chọn Phương Án 3</button>
+      </div>
+      <div style="font-size: 12px; color: #94a3b8;">Hiển thị hộp log dòng lệnh kỹ thuật <code>[✓] Chặng 1... [●] Chặng 2...</code> kèm thanh tiến trình mảnh ở đáy.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Tắt chế độ annotate mặc định của Plan Canvas để mọi cú click trên giao diện ăn trực tiếp vào phần tử chữ
+  window.addEventListener("load", () => {
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: "pc:set-mode", annotate: false }, "*");
+    }
+  });
+
+  const deletedIds = new Set();
+  const deletedBlocks = new Set();
+  let selectedDesign = "option_1_stepper_hud";
+
+  const DESIGN_LABELS = {
+    option_1_stepper_hud: "Phương Án 1 (Stepper HUD)",
+    option_2_segmented_telemetry: "Phương Án 2 (Segmented LED)",
+    option_3_terminal_console: "Phương Án 3 (Terminal Console)"
+  };
+
+  function updateStatusHeader() {
+    const total = deletedIds.size + deletedBlocks.size;
+    document.getElementById("delCountBadge").textContent = `Đã chọn xoá: ${total} mục (${deletedIds.size} chữ, ${deletedBlocks.size} khung)`;
+    document.getElementById("designChoiceBadge").textContent = `Progress Bar: ${DESIGN_LABELS[selectedDesign]}`;
+  }
+
+  // Click vào bất kỳ chữ nào (label.tx-del) để đánh dấu xoá / khôi phục
+  document.querySelectorAll("label.tx-del").forEach(lbl => {
+    lbl.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const id = lbl.getAttribute("data-id");
+      if (deletedIds.has(id)) {
+        deletedIds.delete(id);
+        lbl.classList.remove("is-deleted");
+      } else {
+        deletedIds.add(id);
+        lbl.classList.add("is-deleted");
+      }
+      updateStatusHeader();
+    });
+  });
+
+  // Click nút "Xoá cả khung này" trên các container
+  document.querySelectorAll(".btn-del-block").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const blockId = btn.getAttribute("data-block-target");
+      const wrap = document.querySelector(`.block-del-wrap[data-block-id="${blockId}"]`);
+      if (!wrap) return;
+      const childLabels = wrap.querySelectorAll("label.tx-del");
+
+      if (deletedBlocks.has(blockId)) {
+        deletedBlocks.delete(blockId);
+        wrap.classList.remove("block-is-deleted");
+        btn.textContent = "🗑️ Xoá cả khung này";
+        childLabels.forEach(l => {
+          deletedIds.delete(l.getAttribute("data-id"));
+          l.classList.remove("is-deleted");
+        });
+      } else {
+        deletedBlocks.add(blockId);
+        wrap.classList.add("block-is-deleted");
+        btn.textContent = "↺ Khôi phục khung này";
+        childLabels.forEach(l => {
+          deletedIds.add(l.getAttribute("data-id"));
+          l.classList.add("is-deleted");
+        });
+      }
+      updateStatusHeader();
+    });
+  });
+
+  // Chuyển đổi giữa xem từng Tab hoặc xem tất cả 3 Tab cùng lúc
+  const btnToggleAll = document.getElementById("btnToggleAllTabs");
+  btnToggleAll.addEventListener("click", () => {
+    const isAll = document.body.classList.toggle("show-all-tabs");
+    btnToggleAll.classList.toggle("active-mode", isAll);
+    btnToggleAll.textContent = isAll ? "Đang mở: Tất cả 3 Tab cùng lúc" : "Chế độ: Xem từng Tab riêng";
+  });
+
+  document.querySelectorAll(".st-tab-btn").forEach(tabBtn => {
+    tabBtn.addEventListener("click", (e) => {
+      if (e.target.closest("label.tx-del")) return; // Nếu click vào chữ trên tab thì xoá chữ
+      document.body.classList.remove("show-all-tabs");
+      btnToggleAll.classList.remove("active-mode");
+      btnToggleAll.textContent = "Bật xem tất cả 3 Tab cùng lúc";
+
+      document.querySelectorAll(".st-tab-btn").forEach(b => b.classList.remove("active"));
+      tabBtn.classList.add("active");
+
+      const targetId = tabBtn.getAttribute("data-tab-switch");
+      document.querySelectorAll(".tab-pane").forEach(p => {
+        p.classList.toggle("visible", p.id === targetId);
+      });
+    });
+  });
+
+  // Nút Khôi phục toàn bộ
+  document.getElementById("btnResetAll").addEventListener("click", () => {
+    deletedIds.clear();
+    deletedBlocks.clear();
+    document.querySelectorAll("label.tx-del").forEach(l => l.classList.remove("is-deleted"));
+    document.querySelectorAll(".block-del-wrap").forEach(w => w.classList.remove("block-is-deleted"));
+    document.querySelectorAll(".btn-del-block").forEach(b => b.textContent = "🗑️ Xoá cả khung này");
+    updateStatusHeader();
+  });
+
+  // Chọn thiết kế Progress Bar
+  document.querySelectorAll(".btn-pick-design").forEach(btn => {
+    btn.addEventListener("click", () => {
+      selectedDesign = btn.getAttribute("data-pick");
+      document.querySelectorAll(".design-card").forEach(c => {
+        const match = c.getAttribute("data-design-id") === selectedDesign;
+        c.classList.toggle("selected-design", match);
+        const b = c.querySelector(".btn-pick-design");
+        b.classList.toggle("active-mode", match);
+        const num = c.getAttribute("data-design-id").split("_")[1];
+        b.textContent = match ? `✓ Đang chọn Phương Án ${num}` : `Chọn Phương Án ${num}`;
+      });
+      updateStatusHeader();
+    });
+  });
+
+  // Gửi kết quả về cho Agent
+  document.getElementById("text-audit-submit").addEventListener("click", () => {
+    const deletedTextDetails = [];
+    document.querySelectorAll("label.tx-del").forEach(lbl => {
+      const id = lbl.getAttribute("data-id");
+      if (deletedIds.has(id)) {
+        deletedTextDetails.push({
+          id,
+          file: lbl.getAttribute("data-file"),
+          text: lbl.innerText.replace("🗑️", "").trim()
+        });
+      }
+    });
+
+    const payload = {
+      action: "VISUAL_FRONTEND_TEXT_DELETE_AND_DESIGN",
+      selectedProgressDesign: selectedDesign,
+      selectedProgressDesignLabel: DESIGN_LABELS[selectedDesign],
+      deletedBlockIds: Array.from(deletedBlocks),
+      deletedTextCount: deletedTextDetails.length,
+      deletedTexts: deletedTextDetails
+    };
+
+    const submitBtn = document.getElementById("text-audit-submit");
+    submitBtn.textContent = "🚀 Đã gửi lựa chọn về cho Agent!";
+    submitBtn.style.background = "#10b981";
+
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({
+        type: "pc:queue-and-send",
+        item: {
+          kind: "annotation",
+          text: JSON.stringify(payload, null, 2),
+          anchor: {
+            selector: "#text-audit-submit",
+            tag: "button",
+            snippet: `Xoá ${deletedTextDetails.length} text & ${deletedBlocks.size} khung | Thiết kế: ${DESIGN_LABELS[selectedDesign]}`
+          }
+        }
+      }, "*");
+    }
+  });
+</script>
+</body>
+</html>

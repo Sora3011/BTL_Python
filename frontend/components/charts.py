@@ -1,13 +1,11 @@
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import streamlit as st
 
 def render_sentiment_donut(df_detail: pd.DataFrame, total_cmt: int, color_palette: dict):
     """Vẽ biểu đồ tròn Donut cơ cấu tỷ lệ cảm xúc 4 nhãn chuẩn phong cách phòng nghiên cứu."""
     with st.container(border=True):
-        st.markdown("<div style='font-size:14px; font-weight:700; color:#f8fafc; margin-bottom:2px;'>Cơ Cấu Tỷ Lệ Cảm Xúc Toàn Diện</div>", unsafe_allow_html=True)
-        st.caption(f"Tỷ lệ % của 4 nhóm phân lớp cảm xúc trên tập mẫu N = {total_cmt} ý kiến")
+        st.markdown("<div style='font-size:14px; font-weight:700; color:#f8fafc; margin-bottom:8px;'>Cơ Cấu Tỷ Lệ Cảm Xúc Toàn Diện</div>", unsafe_allow_html=True)
 
         fig_pie = px.pie(
             df_detail,
@@ -23,7 +21,6 @@ def render_sentiment_donut(df_detail: pd.DataFrame, total_cmt: int, color_palett
             hovertemplate="<b>%{label}</b><br>Số ý kiến: %{value}<br>Tỷ trọng: %{percent:.1%}<extra></extra>"
         )
         
-        # Xác định nhãn chiếm ưu thế
         dominant_label = df_detail["sentiment_label"].value_counts().index[0]
         dominant_pct = (df_detail["sentiment_label"].value_counts().iloc[0] / total_cmt) * 100
 
@@ -46,8 +43,7 @@ def render_sentiment_donut(df_detail: pd.DataFrame, total_cmt: int, color_palett
 def render_score_histogram(df_detail: pd.DataFrame):
     """Vẽ biểu đồ phân bổ mật độ điểm cảm xúc (0 - 100) theo 5 khoảng phân hóa."""
     with st.container(border=True):
-        st.markdown("<div style='font-size:14px; font-weight:700; color:#f8fafc; margin-bottom:2px;'>Phân Bổ Mật Độ Điểm Cảm Xúc (0 - 100)</div>", unsafe_allow_html=True)
-        st.caption("Khảo sát mức độ phân cực ý kiến theo 5 phân khoảng chuẩn hóa")
+        st.markdown("<div style='font-size:14px; font-weight:700; color:#f8fafc; margin-bottom:8px;'>Phân Bổ Mật Độ Điểm Cảm Xúc (0 - 100)</div>", unsafe_allow_html=True)
 
         bins = [0, 20, 40, 60, 80, 100]
         bin_labels = ["0-20 Rất xấu", "20-40 Tiêu cực", "40-60 Trung lập", "60-80 Tích cực", "80-100 Xuất sắc"]

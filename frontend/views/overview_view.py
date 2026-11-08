@@ -1,13 +1,11 @@
 import streamlit as st
-import pandas as pd
 from backend.database.db import get_posts_summary, get_post_comments
 from backend.models.sentiment_model import COLOR_PALETTE
 from frontend.components.cards import render_cockpit, render_spotlight
 from frontend.components.charts import render_sentiment_donut, render_score_histogram
-from frontend.components.style_loader import render_html
 
 def render_overview_view():
-    """Hiển thị Phân Hệ Tổng Quan: Bảng Điều Khiển Cảm Xúc & Phân Tích Dữ Liệu SQL."""
+    """Hiển thị Phân Hệ Tổng Quan: Bảng Điều Khiển Cảm Xúc & Phân Tích Dữ Liệu."""
     df_summary = get_posts_summary()
 
     if df_summary.empty:
@@ -19,10 +17,11 @@ def render_overview_view():
         c_pick, c_btn, c_dl = st.columns([3.5, 1.2, 1.3], vertical_alignment="center")
         with c_pick:
             post_opts = df_summary["post_id"].tolist()
-            post_labels = {
-                row["post_id"]: f"Bản ghi #{row['post_id']} • [{row['Nền tảng']}] {str(row['Nguồn dữ liệu'])[:50]}... ({row['Tổng số ý kiến']} bình luận)"
-                for _, row in df_summary.iterrows()
-            }
+            post_labels = {}
+            for _, row in df_summary.iterrows():
+                src_str = str(row["Nguồn dữ liệu"]).strip()
+                clean_title = "Video YouTube" if src_str.startswith("http") else src_str[:45]
+                post_labels[row["post_id"]] = f"Bản ghi #{row['post_id']} • [{row['Nền tảng']}] {clean_title} ({row['Tổng số ý kiến']} bình luận)"
             selected_post_id = st.selectbox(
                 "Tập dữ liệu đang kiểm chứng:",
                 options=post_opts,
@@ -122,7 +121,6 @@ def render_overview_view():
             st.markdown("""
             <div class="studio-panel-header">
                 <span class="studio-panel-title">Duyệt & Tra Cứu Toàn Bộ Ý Kiến Đã Phân Tích</span>
-                <span class="studio-panel-badge">DATA_EXPLORER</span>
             </div>
             """, unsafe_allow_html=True)
 
@@ -142,10 +140,10 @@ def render_overview_view():
             with col_flt_range:
                 flt_score_range = st.slider(
                     "Khoảng điểm (0 - 100):",
-                    min_value=0.0,
-                    max_value=100.0,
-                    value=(0.0, 100.0),
-                    step=5.0,
+                    min_value=0,
+                    max_value=100,
+                    value=(0, 100),
+                    step=1,
                     key="view_filter_score_slider"
                 )
 
@@ -155,8 +153,6 @@ def render_overview_view():
             if flt_kw.strip():
                 df_show = df_show[df_show["raw_text"].str.contains(flt_kw.strip(), case=False, na=False, regex=False)]
             df_show = df_show[(df_show["score_100"] >= flt_score_range[0]) & (df_show["score_100"] <= flt_score_range[1])]
-
-            st.caption(f"Đang hiển thị **{len(df_show)}** trên tổng số **{total_cmt}** bình luận phù hợp tiêu chí tra cứu.")
 
             st.dataframe(
                 df_show[["author", "raw_text", "score_100", "pos_score", "neu_score", "neg_score", "entropy", "sentiment_label"]],
@@ -169,44 +165,6 @@ def render_overview_view():
                     "neg_score": st.column_config.NumberColumn("% Tiêu cực", format="%.1f%%"),
                     "entropy": st.column_config.NumberColumn("Entropy", format="%.2f"),
                     "sentiment_label": st.column_config.TextColumn("Phân loại", width="small")
-                },
-                hide_index=True,
-                use_container_width=True
-            )
-
-        # 5. CỬA SỔ MINH BẠCH TRUY VẤN SQL (SQL TRANSPARENCY STUDIO)
-        with st.expander("Cửa Sổ Minh Bạch Truy Vấn SQL Quan Hệ (SQLite JOIN & GROUP BY)", expanded=False, icon=":material/code:"):
-            st.markdown("""
-            Đoạn mã SQL sau được ứng dụng sử dụng để thực thi liên kết quan hệ 1-N giữa bảng `posts` và bảng `comments`,
-            tính toán điểm trung bình và phân nhóm số lượng ý kiến theo 4 phân lớp cảm xúc:
-            """)
-            st.code("""
-SELECT 
-    p.post_id,
-    p.platform AS "Nền tảng",
-    p.post_url AS "Nguồn dữ liệu",
-    p.analyzed_at AS "Thời điểm phân tích",
-    COUNT(c.comment_id) AS "Tổng số ý kiến",
-    ROUND(AVG(c.score_100), 1) AS "Điểm TB",
-    SUM(CASE WHEN c.sentiment_label = 'Tích cực' THEN 1 ELSE 0 END) AS "Tích cực",
-    SUM(CASE WHEN c.sentiment_label = 'Trung tính' THEN 1 ELSE 0 END) AS "Trung tính",
-    SUM(CASE WHEN c.sentiment_label = 'Hỗn hợp' THEN 1 ELSE 0 END) AS "Hỗn hợp",
-    SUM(CASE WHEN c.sentiment_label = 'Tiêu cực' THEN 1 ELSE 0 END) AS "Tiêu cực"
-FROM posts p
-JOIN comments c ON p.post_id = c.post_id
-GROUP BY p.post_id
-ORDER BY p.post_id DESC;
-            """, language="sql")
-
-            st.markdown("<div style='font-size:13.5px; font-weight:700; color:#cbd5e1; margin-top:14px; margin-bottom:8px;'>Bảng Dữ Liệu Kết Xuất Tổng Thể Từ CSDL:</div>", unsafe_allow_html=True)
-            st.dataframe(
-                df_summary,
-                column_config={
-                    "post_id": st.column_config.NumberColumn("Mã Bài", width="small"),
-                    "Nền tảng": st.column_config.TextColumn("Nền tảng", width="small"),
-                    "Nguồn dữ liệu": st.column_config.TextColumn("Nguồn dữ liệu / URL", width="large"),
-                    "Thời điểm phân tích": st.column_config.TextColumn("Thời gian", width="medium"),
-                    "Điểm TB": st.column_config.ProgressColumn("Điểm TB", min_value=0, max_value=100, format="%.1f")
                 },
                 hide_index=True,
                 use_container_width=True

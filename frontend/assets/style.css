@@ -926,3 +926,84 @@ div.stDownloadButton>button:hover {
     border: 1px solid var(--border-subtle) !important;
     background: #090e17 !important;
 }
+
+/* 11. LIVE TERMINAL PIPELINE CONSOLE (YOUTUBE & FACEBOOK PROGRESS HUD) */
+.terminal-pipeline-wrap {
+    background: linear-gradient(145deg, rgba(13, 18, 28, 0.94) 0%, rgba(7, 10, 16, 0.98) 100%);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+    margin: 14px 0 18px 0;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 10px 30px rgba(0, 0, 0, 0.45);
+    position: relative;
+    overflow: hidden;
+}
+
+.terminal-pipeline-wrap.yt-theme {
+    border-top: 2px solid #f87171;
+}
+
+.terminal-pipeline-wrap.fb-theme {
+    border-top: 2px solid #38bdf8;
+}
+
+.terminal-console-box {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: #05070b;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    line-height: 1.75;
+}
+
+.term-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.term-line.done {
+    color: #10b981;
+}
+
+.term-line.active-yt {
+    color: #f87171;
+    font-weight: 700;
+}
+
+.term-line.active-fb {
+    color: #38bdf8;
+    font-weight: 700;
+}
+
+.term-line.pending {
+    color: #64748b;
+}
+
+.terminal-bar-track {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius-pill);
+    overflow: hidden;
+    margin-top: 12px;
+}
+
+.terminal-bar-fill-yt {
+    height: 100%;
+    background: linear-gradient(90deg, #ef4444 0%, #f97316 50%, #38bdf8 100%);
+    border-radius: var(--radius-pill);
+    transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.terminal-bar-fill-fb {
+    height: 100%;
+    background: linear-gradient(90deg, #0ea5e9 0%, #a855f7 50%, #10b981 100%);
+    border-radius: var(--radius-pill);
+    transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+

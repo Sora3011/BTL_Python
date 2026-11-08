@@ -1,47 +1,29 @@
-import torch
-import streamlit as st
-from backend.database.db import get_system_stats
+import base64
 from frontend.components.style_loader import render_html
+
+# Biểu tượng sóng âm / xung tín hiệu Cyber Cyan dạng Base64 SVG (không bị DOMPurify của Streamlit lọc bỏ)
+_ICON_SVG = (
+    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" '
+    'fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
+    '<path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/>'
+    '<path d="M18 5v13"/><path d="M22 10v3"/></svg>'
+)
+_ICON_B64 = base64.b64encode(_ICON_SVG.encode("utf-8")).decode("ascii")
 
 def render_top_header():
     """
-    Hien thi Thanh Thuong Hieu va Telemetry He Thong o dinh trang.
-    Su dung bieu tuong vector SVG hinh hoc va chip telemetry phat quang.
+    Hiển thị Thanh Thương Hiệu Sounds of Social ở đỉnh trang.
     """
-    total_posts, total_comments = get_system_stats()
-    device_label = "CUDA GPU" if torch.cuda.is_available() else "CPU Multi-Core"
-
     markup = f"""
     <div class="top-brand-dock">
         <div class="nav-brand-section">
             <div class="nav-brand-icon">
                 <span class="nav-brand-pulse"></span>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                </svg>
+                <img src="data:image/svg+xml;base64,{_ICON_B64}" width="20" height="20" alt="Sounds of Social" style="display: block;" />
             </div>
             <div>
-                <div class="nav-brand-title">ViSoBERT Studio</div>
-                <div class="nav-brand-sub">Neural Social Intelligence Observatory</div>
+                <div class="nav-brand-title">Sounds of Social</div>
             </div>
-        </div>
-        <div class="nav-telemetry-cluster">
-            <span class="nav-telemetry-chip">
-                <span class="nav-dot-online"></span>
-                <span>ONLINE</span>
-            </span>
-            <span class="nav-telemetry-chip">
-                <span>Thiet bi:</span>
-                <strong style="color: #38bdf8;">{device_label}</strong>
-            </span>
-            <span class="nav-telemetry-chip">
-                <span>Mo hinh:</span>
-                <strong style="color: #cbd5e1;">ViSoBERT v2</strong>
-            </span>
-            <span class="nav-telemetry-chip">
-                <span>CSDL:</span>
-                <strong style="color: #10b981;">{total_posts} bai | {total_comments} cmt</strong>
-            </span>
         </div>
     </div>
     """

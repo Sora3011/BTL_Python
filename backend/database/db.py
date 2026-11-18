@@ -5,11 +5,9 @@ import pandas as pd
 DB_NAME = "sentiment_analytics.db"
 
 def get_connection() -> sqlite3.Connection:
-    """Tạo và trả về kết nối SQLite3."""
     return sqlite3.connect(DB_NAME)
 
 def init_db() -> None:
-    """Khởi tạo schema cơ sở dữ liệu nếu chưa tồn tại."""
     conn = get_connection()
     try:
         with conn:
@@ -37,11 +35,15 @@ def init_db() -> None:
                     FOREIGN KEY (post_id) REFERENCES posts (post_id)
                 )
             """)
+            try:
+                cursor.execute("ALTER TABLE comments ADD COLUMN entropy REAL DEFAULT 0")
+            except sqlite3.OperationalError as err:
+                if "duplicate column" not in str(err).lower():
+                    raise
     finally:
         conn.close()
 
 def get_system_stats() -> Tuple[int, int]:
-    """Lấy tổng số bài đăng và tổng số bình luận đã lưu trữ."""
     conn = get_connection()
     try:
         cur = conn.cursor()
@@ -54,7 +56,6 @@ def get_system_stats() -> Tuple[int, int]:
         conn.close()
 
 def get_posts_summary() -> pd.DataFrame:
-    """Truy vấn tổng hợp số liệu bài đăng và thống kê phân bổ cảm xúc từ SQLite."""
     conn = get_connection()
     try:
         sql_summary = """
@@ -80,7 +81,6 @@ def get_posts_summary() -> pd.DataFrame:
         conn.close()
 
 def get_post_comments(post_id: int) -> pd.DataFrame:
-    """Lấy toàn bộ bình luận chi tiết của một bài đăng theo post_id."""
     conn = get_connection()
     try:
         df = pd.read_sql_query("SELECT * FROM comments WHERE post_id = ?", conn, params=(int(post_id),))
@@ -88,21 +88,20 @@ def get_post_comments(post_id: int) -> pd.DataFrame:
     finally:
         conn.close()
 
-def save_post_and_comments(platform: str, post_url: str, analyzed_results: List[Any]) -> int:
-    """
-    Lưu thông tin bài đăng và danh sách kết quả phân tích bình luận vào CSDL.
-    Trả về post_id mới tạo.
-    """
+def save_analysis_results(platform: str, source_name: str, analyzed_results: List[Any]) -> int:
     conn = get_connection()
     try:
-        with conn:
-            cur = conn.cursor()
-            cur.execute("INSERT INTO posts (platform, post_url) VALUES (?, ?)", (platform, post_url))
-            new_post_id = cur.lastrowid
-            cur.executemany("""
-                INSERT INTO comments (post_id, author, raw_text, pos_score, neu_score, neg_score, score_100, entropy, sentiment_label)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, [(new_post_id, *r) for r in analyzed_results])
+        cur = conn.cursor()
+        cur.execute("INSERT INTO posts (platform, post_url) VALUES (?, ?)", (platform, source_name))
+        new_post_id = cur.lastrowid
+        cur.executemany("""
+            INSERT INTO comments (post_id, author, raw_text, pos_score, neu_score, neg_score, score_100, entropy, sentiment_label)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, [(new_post_id, *r) for r in analyzed_results])
+        conn.commit()
         return new_post_id
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         conn.close()

@@ -4,8 +4,9 @@ import time
 from typing import Optional
 import pandas as pd
 import streamlit as st
+from backend.models.sentiment_model import get_confidence_threshold
 from backend.scrapers.youtube_scraper import crawl_youtube_comments
-from backend.services.analysis_service import process_and_save_analysis
+from backend.services.analysis_service import process_and_save_comments
 from backend.database.db import get_posts_summary
 from frontend.components.cards import render_instant_summary, render_terminal_console
 from frontend.components.style_loader import render_html
@@ -16,17 +17,7 @@ def extract_youtube_id(url: str):
     return match.group(1) if match else None
 
 def render_youtube_view(tokenizer, model, device, inf_cfg):
-    """
-    Hiển thị Phân Hệ YouTube Studio:
-    Bố cục Studio 2 cột bất đối xứng (Dual-Column Studio Workbench).
-    Cột Trái: Trạm Khai Thác & Điều Khiển Độ Sâu Thu Thập YouTube + Live Terminal Pipeline Console.
-    Cột Phải: Lịch Sử Bản Ghi Video YouTube Đã Lưu Trữ.
-    """
     col_yt_left, col_yt_right = st.columns([1.35, 1.0], gap="medium")
-
-    # ==========================================================================
-    # CỘT TRÁI: TRẠM KHAI THÁC & ĐIỀU KHIỂN CÀO DỮ LIỆU
-    # ==========================================================================
     with col_yt_left:
         with st.container(border=True):
             st.markdown("""
@@ -53,7 +44,6 @@ def render_youtube_view(tokenizer, model, device, inf_cfg):
                 key="yt_link_input_field"
             )
 
-            # Dynamic Cinema Preview Card (không hiển thị ID)
             video_id = extract_youtube_id(yt_input_url.strip()) if yt_input_url.strip() else None
             if video_id:
                 thumb_url = f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg"
@@ -112,7 +102,7 @@ def render_youtube_view(tokenizer, model, device, inf_cfg):
                         steps=[
                             ("active", f"01. Kết nối HTTP Stream YouTube ({saved_video_name})..."),
                             ("pending", f"02. Cào luồng bình luận ({target_desc})"),
-                            ("pending", "03. Suy luận cảm xúc ViSoBERT v2"),
+                            ("pending", "03. Suy luận cảm xúc ViSoBERT_final"),
                             ("pending", "04. Ghi bản ghi vào cơ sở dữ liệu SQLite")
                         ],
                         pct=8.0
@@ -132,7 +122,7 @@ def render_youtube_view(tokenizer, model, device, inf_cfg):
                             steps=[
                                 ("done", f"01. Kết nối HTTP Stream YouTube ({saved_video_name})"),
                                 ("active", step2_msg),
-                                ("pending", "03. Suy luận cảm xúc ViSoBERT v2"),
+                                ("pending", "03. Suy luận cảm xúc ViSoBERT_final"),
                                 ("pending", "04. Ghi bản ghi vào cơ sở dữ liệu SQLite")
                             ],
                             pct=crawl_pct
@@ -149,10 +139,36 @@ def render_youtube_view(tokenizer, model, device, inf_cfg):
                         step2_done_msg = (
                             f"02. Cào thành công toàn bộ {total_crawled} bình luận (Full Mode)"
                             if max_yt_comments is None
-                            else f"02. Cào thành công {total_crawled}/{max_yt_comments} bình luận phổ biến nhất"
+                            else f"02. Cào thành công {total_crawled}/{max_yt_comments} bình luận mới nhất"
                         )
 
-                        def on_yt_infer_progress(curr: int, total: int):
+                        def on_yt_service_progress(step: int, message: str = ""):
+                            if step == 2:
+                                render_terminal_console(
+                                    progress_slot,
+                                    theme="yt",
+                                    steps=[
+                                        ("done", f"01. Kết nối HTTP Stream YouTube ({saved_video_name})"),
+                                        ("done", step2_done_msg),
+                                        ("active", f"03. {message or 'Chuẩn hóa ngữ cảnh tiếng Việt'}..."),
+                                        ("pending", "04. Ghi bản ghi vào cơ sở dữ liệu SQLite")
+                                    ],
+                                    pct=45.0
+                                )
+                            elif step == 4:
+                                render_terminal_console(
+                                    progress_slot,
+                                    theme="yt",
+                                    steps=[
+                                        ("done", f"01. Kết nối HTTP Stream YouTube ({saved_video_name})"),
+                                        ("done", step2_done_msg),
+                                        ("done", f"03. Hoàn tất suy luận ViSoBERT_final ({total_crawled}/{total_crawled} bình luận)"),
+                                        ("active", f"04. {message or 'Đang đồng bộ hóa vào SQLite...'}")
+                                    ],
+                                    pct=96.0
+                                )
+
+                        def on_yt_model_progress(curr: int, total: int):
                             inf_pct = 45.0 + (curr / max(total, 1)) * 47.0
                             pct_label = int(round((curr / max(total, 1)) * 100))
                             render_terminal_console(
@@ -161,45 +177,31 @@ def render_youtube_view(tokenizer, model, device, inf_cfg):
                                 steps=[
                                     ("done", f"01. Kết nối HTTP Stream YouTube ({saved_video_name})"),
                                     ("done", step2_done_msg),
-                                    ("active", f"03. Đang chạy ViSoBERT v2: {curr}/{total} bình luận ({pct_label}%)..."),
+                                    ("active", f"03. Đang chạy ViSoBERT_final: {curr}/{total} bình luận ({pct_label}%)..."),
                                     ("pending", "04. Ghi bản ghi vào cơ sở dữ liệu SQLite")
                                 ],
                                 pct=inf_pct
                             )
 
-                        def on_yt_before_save():
-                            render_terminal_console(
-                                progress_slot,
-                                theme="yt",
-                                steps=[
-                                    ("done", f"01. Kết nối HTTP Stream YouTube ({saved_video_name})"),
-                                    ("done", step2_done_msg),
-                                    ("done", f"03. Hoàn tất suy luận ViSoBERT v2 ({total_crawled}/{total_crawled} bình luận)"),
-                                    ("active", "04. Đang ghi bản ghi vào cơ sở dữ liệu SQLite...")
-                                ],
-                                pct=96.0
-                            )
-
-                        new_post_id, df_res_yt = process_and_save_analysis(
+                        new_post_id, df_res_yt = process_and_save_comments(
                             platform="YouTube",
-                            post_source=saved_video_name,
+                            source_name=saved_video_name,
                             comments_data=raw_comments,
                             tokenizer=tokenizer,
                             model=model,
                             device=device,
                             inf_cfg=inf_cfg,
-                            on_inference_progress=on_yt_infer_progress,
-                            on_before_save=on_yt_before_save
+                            on_progress=on_yt_service_progress,
+                            model_progress=on_yt_model_progress
                         )
 
-                        # Hoàn tất 100% và tự động thu gọn thanh tiến trình
                         render_terminal_console(
                             progress_slot,
                             theme="yt",
                             steps=[
                                 ("done", f"01. Kết nối HTTP Stream YouTube ({saved_video_name})"),
                                 ("done", step2_done_msg),
-                                ("done", f"03. Hoàn tất suy luận ViSoBERT v2 ({total_crawled}/{total_crawled} bình luận)"),
+                                ("done", f"03. Hoàn tất suy luận ViSoBERT_final ({total_crawled}/{total_crawled} bình luận)"),
                                 ("done", f"04. Đã lưu bản ghi #{new_post_id} vào cơ sở dữ liệu SQLite")
                             ],
                             pct=100.0
@@ -208,7 +210,11 @@ def render_youtube_view(tokenizer, model, device, inf_cfg):
                         progress_slot.empty()
 
                         st.success(f"Hoàn tất thu thập và phân tích **{len(df_res_yt)}** ý kiến YouTube! Đã lưu CSDL với mã bản ghi **#{new_post_id}**.")
-                        render_instant_summary(new_post_id, df_res_yt)
+                        render_instant_summary(
+                            new_post_id,
+                            df_res_yt,
+                            conf_threshold=get_confidence_threshold(inf_cfg)
+                        )
                     else:
                         progress_slot.empty()
                         st.warning("Không tìm thấy bình luận nào trên video này, hoặc video đã bị chủ sở hữu tắt tính năng bình luận.")

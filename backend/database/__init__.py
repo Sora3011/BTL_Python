@@ -6,6 +6,6 @@ from .db import (
     get_system_stats,
     get_posts_summary,
     get_post_comments,
-    save_post_and_comments,
+    save_analysis_results,
 )
 

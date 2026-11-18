@@ -1,18 +1,72 @@
+import html
+from typing import Any, Dict, Optional, Tuple
 import streamlit as st
 from backend.database.db import get_posts_summary, get_post_comments
-from backend.models.sentiment_model import COLOR_PALETTE
-from frontend.components.cards import render_cockpit, render_spotlight
+from backend.models.sentiment_model import COLOR_PALETTE, get_confidence_threshold
+from frontend.components.cards import (
+    SPOTLIGHT_ENTROPY_THRESHOLD,
+    annotate_confidence_flags,
+    classify_entropy_level,
+    render_cockpit,
+    render_spotlight,
+    safe_float,
+)
 from frontend.components.charts import render_sentiment_donut, render_score_histogram
 
-def render_overview_view():
+_SCORE_VERDICTS = (
+    (
+        75.0,
+        "Đồng Thuận Tán Thưởng Rất Cao",
+        "Đa số ý kiến cộng đồng bày tỏ sự ủng hộ, hài lòng và đánh giá tích cực với các chi tiết được đề cập.",
+        "#10b981",
+    ),
+    (
+        60.0,
+        "Xu Hướng Đánh Giá Khả Quan",
+        "Tỷ lệ tích cực chiếm ưu thế rõ nét; ý kiến tiêu cực chỉ xuất hiện rải rác ở một số khía cạnh nhỏ.",
+        "#34d399",
+    ),
+    (
+        45.0,
+        "Cân Bằng & Đa Chiều",
+        "Ý kiến ghi nhận sự phân hóa hoặc tập trung ở vùng trung dung; không có xu hướng cực đoan rõ rệt.",
+        "#cbd5e1",
+    ),
+    (
+        30.0,
+        "Nhiều Ý Kiến Bất Bình & Phê Bình",
+        "Cộng đồng ghi nhận nhiều phản ánh tiêu cực, tranh cãi hoặc bất đồng quan điểm đáng chú ý.",
+        "#fb7185",
+    ),
+    (
+        float("-inf"),
+        "Phản Ứng Tiêu Cực Gay Gắt",
+        "Tỷ lệ bình luận chỉ trích chiếm đa số áp đảo; mức độ hài lòng ở mức rất thấp.",
+        "#f43f5e",
+    ),
+)
+
+
+def evaluate_sentiment_verdict(mean_score: float, mean_entropy: float) -> Tuple[str, str, str]:
+    """Đánh giá 5 cấp độ rủi ro từ Mean Score kết hợp mức độ bất định Entropy TB H̄(P)."""
+    score_val = safe_float(mean_score, 50.0)
+    _, _, _, _, entropy_note = classify_entropy_level(mean_entropy)
+    for min_score, title, base_desc, color in _SCORE_VERDICTS:
+        if score_val >= min_score:
+            return title, f"{base_desc} {entropy_note}", color
+    _, title, base_desc, color = _SCORE_VERDICTS[-1]
+    return title, f"{base_desc} {entropy_note}", color
+
+
+def render_overview_view(inf_cfg: Optional[Dict[str, Any]] = None):
     """Hiển thị Phân Hệ Tổng Quan: Bảng Điều Khiển Cảm Xúc & Phân Tích Dữ Liệu."""
+    conf_threshold = get_confidence_threshold(inf_cfg)
     df_summary = get_posts_summary()
 
     if df_summary.empty:
         st.info("Chưa ghi nhận dữ liệu phân tích nào trong cơ sở dữ liệu SQLite. Vui lòng chuyển sang phân hệ 'YouTube' hoặc 'Facebook' ở thanh điều hướng phía trên để bắt đầu nạp dữ liệu.")
         return
 
-    # Thanh điều phối chọn tập dữ liệu (Dataset Command Toolbar)
     with st.container(border=True):
         c_pick, c_btn, c_dl = st.columns([3.5, 1.2, 1.3], vertical_alignment="center")
         with c_pick:
@@ -32,7 +86,6 @@ def render_overview_view():
             if st.button("Làm mới", icon=":material/refresh:", use_container_width=True):
                 st.rerun()
 
-        # Truy vấn thông tin chi tiết của bài đăng được chọn
         df_detail = get_post_comments(int(selected_post_id))
         post_meta = df_summary[df_summary["post_id"] == int(selected_post_id)].iloc[0]
 
@@ -49,8 +102,8 @@ def render_overview_view():
 
     if not df_detail.empty:
         total_cmt = len(df_detail)
-        mean_score = float(df_detail["score_100"].mean())
-        mean_entropy = float(df_detail["entropy"].mean())
+        mean_score = safe_float(df_detail["score_100"].mean(), 50.0)
+        mean_entropy = safe_float(df_detail["entropy"].mean(), 0.0)
 
         pos_count = int(sum(df_detail["sentiment_label"] == "Tích cực"))
         neu_count = int(sum(df_detail["sentiment_label"] == "Trung tính"))
@@ -62,29 +115,9 @@ def render_overview_view():
         mix_pct = (mix_count / total_cmt * 100) if total_cmt else 0
         neg_pct = (neg_count / total_cmt * 100) if total_cmt else 0
 
-        # Diễn giải ngữ nghĩa khách quan cho điểm số
-        if mean_score >= 75:
-            verdict_title = "Đồng Thuận Tán Thưởng Rất Cao"
-            verdict_desc = "Đa số ý kiến cộng đồng bày tỏ sự ủng hộ, hài lòng và đánh giá tích cực với các chi tiết được đề cập."
-            verdict_color = "#10b981"
-        elif mean_score >= 60:
-            verdict_title = "Xu Hướng Đánh Giá Khả Quan"
-            verdict_desc = "Tỷ lệ tích cực chiếm ưu thế rõ nét; ý kiến tiêu cực chỉ xuất hiện rải rác ở một số khía cạnh nhỏ."
-            verdict_color = "#34d399"
-        elif mean_score >= 45:
-            verdict_title = "Cân Bằng & Đa Chiều"
-            verdict_desc = "Ý kiến ghi nhận sự phân hóa hoặc tập trung ở vùng trung dung; không có xu hướng cực đoan rõ rệt."
-            verdict_color = "#cbd5e1"
-        elif mean_score >= 30:
-            verdict_title = "Nhiều Ý Kiến Bất Bình & Phê Bình"
-            verdict_desc = "Cộng đồng ghi nhận nhiều phản ánh tiêu cực, tranh cãi hoặc bất đồng quan điểm đáng chú ý."
-            verdict_color = "#fb7185"
-        else:
-            verdict_title = "Phản Ứng Tiêu Cực Gay Gắt"
-            verdict_desc = "Tỷ lệ bình luận chỉ trích chiếm đa số áp đảo; mức độ hài lòng ở mức rất thấp."
-            verdict_color = "#f43f5e"
+        verdict_title, verdict_desc, verdict_color = evaluate_sentiment_verdict(mean_score, mean_entropy)
+        df_flagged, uncertain_count = annotate_confidence_flags(df_detail, conf_threshold)
 
-        # 1. BỐ CỤC BẤT ĐỐI XỨNG: ASYMMETRIC SENTIMENT COCKPIT
         render_cockpit(
             total_cmt=total_cmt,
             mean_score=mean_score,
@@ -103,24 +136,28 @@ def render_overview_view():
             platform=post_meta["Nền tảng"]
         )
 
-        # 2. WORKBENCH TRỰC QUAN HÓA KÉP (PLOTLY BIỂU DIỄN SÂU)
         col_chart1, col_chart2 = st.columns(2)
         with col_chart1:
             render_sentiment_donut(df_detail, total_cmt, COLOR_PALETTE)
         with col_chart2:
             render_score_histogram(df_detail)
 
-        # 3. LĂNG KÍNH TIẾNG NÓI CỘNG ĐỒNG (REPRESENTATIVE SPOTLIGHT)
         pos_top = df_detail.sort_values(by="score_100", ascending=False).iloc[0]
         neg_top = df_detail.sort_values(by="score_100", ascending=True).iloc[0]
-        mix_top = df_detail.sort_values(by="entropy", ascending=False).iloc[0]
+        mix_candidates = df_detail[df_detail["entropy"] > SPOTLIGHT_ENTROPY_THRESHOLD]
+        mix_top = mix_candidates.sort_values(by="entropy", ascending=False).iloc[0] if not mix_candidates.empty else None
         render_spotlight(pos_top, neg_top, mix_top)
 
-        # 4. BỘ DUYỆT BÌNH LUẬN CHI TIẾT & BỘ LỌC TƯƠNG TÁC
         with st.container(border=True):
-            st.markdown("""
+            confidence_badge = (
+                f"⚠ {uncertain_count}/{total_cmt} câu cần kiểm tra (< {conf_threshold:.2f})"
+                if uncertain_count > 0
+                else f"100% đạt độ tin cậy ≥ {conf_threshold:.2f}"
+            )
+            st.markdown(f"""
             <div class="studio-panel-header">
                 <span class="studio-panel-title">Duyệt & Tra Cứu Toàn Bộ Ý Kiến Đã Phân Tích</span>
+                <span class="studio-panel-badge">{html.escape(confidence_badge)}</span>
             </div>
             """, unsafe_allow_html=True)
 
@@ -147,23 +184,43 @@ def render_overview_view():
                     key="view_filter_score_slider"
                 )
 
-            df_show = df_detail.copy()
+            only_uncertain = st.checkbox(
+                f"Chỉ xem câu không chắc chắn (độ tin cậy < {conf_threshold:.2f}) — {uncertain_count} câu",
+                key="view_filter_uncertain"
+            )
+
+            df_show = df_flagged.copy()
             if flt_label != "Tất cả phân lớp":
                 df_show = df_show[df_show["sentiment_label"] == flt_label]
             if flt_kw.strip():
                 df_show = df_show[df_show["raw_text"].str.contains(flt_kw.strip(), case=False, na=False, regex=False)]
             df_show = df_show[(df_show["score_100"] >= flt_score_range[0]) & (df_show["score_100"] <= flt_score_range[1])]
+            if only_uncertain:
+                df_show = df_show[df_show["is_uncertain"]]
 
             st.dataframe(
-                df_show[["author", "raw_text", "score_100", "pos_score", "neu_score", "neg_score", "entropy", "sentiment_label"]],
+                df_show[[
+                    "author",
+                    "raw_text",
+                    "score_100",
+                    "confidence_pct",
+                    "confidence_flag",
+                    "pos_score",
+                    "neu_score",
+                    "neg_score",
+                    "entropy",
+                    "sentiment_label",
+                ]],
                 column_config={
                     "author": st.column_config.TextColumn("Người đăng", width="medium"),
                     "raw_text": st.column_config.TextColumn("Nội dung bình luận", width="large"),
                     "score_100": st.column_config.ProgressColumn("Điểm (0-100)", min_value=0, max_value=100, format="%.1f"),
+                    "confidence_pct": st.column_config.NumberColumn("Độ tin cậy", format="%.2f%%"),
+                    "confidence_flag": st.column_config.TextColumn("Cờ kiểm tra", width="medium"),
                     "pos_score": st.column_config.NumberColumn("% Tích cực", format="%.1f%%"),
                     "neu_score": st.column_config.NumberColumn("% Trung tính", format="%.1f%%"),
                     "neg_score": st.column_config.NumberColumn("% Tiêu cực", format="%.1f%%"),
-                    "entropy": st.column_config.NumberColumn("Entropy", format="%.2f"),
+                    "entropy": st.column_config.NumberColumn("Entropy", format="%.3f"),
                     "sentiment_label": st.column_config.TextColumn("Phân loại", width="small")
                 },
                 hide_index=True,

@@ -3,7 +3,6 @@ import plotly.express as px
 import streamlit as st
 
 def render_sentiment_donut(df_detail: pd.DataFrame, total_cmt: int, color_palette: dict):
-    """Vẽ biểu đồ tròn Donut cơ cấu tỷ lệ cảm xúc 4 nhãn chuẩn phong cách phòng nghiên cứu."""
     with st.container(border=True):
         st.markdown("<div style='font-size:14px; font-weight:700; color:#f8fafc; margin-bottom:8px;'>Cơ Cấu Tỷ Lệ Cảm Xúc Toàn Diện</div>", unsafe_allow_html=True)
 
@@ -41,7 +40,6 @@ def render_sentiment_donut(df_detail: pd.DataFrame, total_cmt: int, color_palett
         st.plotly_chart(fig_pie, use_container_width=True)
 
 def render_score_histogram(df_detail: pd.DataFrame):
-    """Vẽ biểu đồ phân bổ mật độ điểm cảm xúc (0 - 100) theo 5 khoảng phân hóa."""
     with st.container(border=True):
         st.markdown("<div style='font-size:14px; font-weight:700; color:#f8fafc; margin-bottom:8px;'>Phân Bổ Mật Độ Điểm Cảm Xúc (0 - 100)</div>", unsafe_allow_html=True)
 

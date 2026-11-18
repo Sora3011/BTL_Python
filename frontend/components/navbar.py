@@ -1,7 +1,6 @@
 import base64
 from frontend.components.style_loader import render_html
 
-# Biểu tượng sóng âm / xung tín hiệu Cyber Cyan dạng Base64 SVG (không bị DOMPurify của Streamlit lọc bỏ)
 _ICON_SVG = (
     '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" '
     'fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
@@ -11,9 +10,6 @@ _ICON_SVG = (
 _ICON_B64 = base64.b64encode(_ICON_SVG.encode("utf-8")).decode("ascii")
 
 def render_top_header():
-    """
-    Hiển thị Thanh Thương Hiệu Sounds of Social ở đỉnh trang.
-    """
     markup = f"""
     <div class="top-brand-dock">
         <div class="nav-brand-section">

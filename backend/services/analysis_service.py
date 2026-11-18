@@ -1,37 +1,36 @@
 from typing import List, Dict, Any, Tuple, Optional, Callable
 import pandas as pd
 from backend.models.sentiment_model import predict_batch_comments
-from backend.database.db import save_post_and_comments
+from backend.database.db import save_analysis_results
 
-def process_and_save_analysis(
+def process_and_save_comments(
     platform: str,
-    post_source: str,
+    source_name: str,
     comments_data: List[Dict[str, Any]],
     tokenizer: Any,
     model: Any,
     device: Any,
     inf_cfg: Dict[str, Any],
-    on_inference_progress: Optional[Callable[[int, int], None]] = None,
-    on_before_save: Optional[Callable[[], None]] = None
+    on_progress: Optional[Callable[[int, str], None]] = None,
+    model_progress: Optional[Callable[[int, int], None]] = None
 ) -> Tuple[Optional[int], Optional[pd.DataFrame]]:
-    """
-    Pipeline chung: nhận danh sách comment thô -> suy luận ViSoBERT v2 -> lưu SQLite -> trả về new_post_id & DataFrame.
-    Hỗ trợ callback cập nhật tiến trình theo thời gian thực.
-    """
     if not comments_data:
         return None, None
-        
+
+    if on_progress is not None:
+        on_progress(2, "Chuẩn hóa ngữ cảnh tiếng Việt")
+
     analyzed_results = predict_batch_comments(
         comments_data,
         tokenizer,
         model,
         device,
         inf_cfg,
-        on_progress=on_inference_progress
+        model_progress=model_progress
     )
-    if on_before_save is not None:
-        on_before_save()
-    new_post_id = save_post_and_comments(platform, post_source, analyzed_results)
+    if on_progress is not None:
+        on_progress(4, "Đang đồng bộ hóa vào SQLite...")
+    new_post_id = save_analysis_results(platform, source_name, analyzed_results)
     
     df_results = pd.DataFrame(analyzed_results, columns=[
         "author", "raw_text", "pos_score", "neu_score", "neg_score", "score_100", "entropy", "sentiment_label"

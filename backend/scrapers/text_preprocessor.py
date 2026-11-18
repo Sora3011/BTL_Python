@@ -17,8 +17,8 @@ EMOTICONS = [
     (re.compile(r"-_-"),          " chán nản "),
 ]
 
+
 def clean_text(text: str, emoji_mode: str = "keep") -> str:
-    """Tiền xử lý chuỗi văn bản: khử URL, mention, dịch emoticon tiếng Việt, emoji, ký tự lặp."""
     t = str(text)
     t = URL_RE.sub(" ", t)
     t = MENTION_RE.sub(" ", t)
@@ -27,5 +27,5 @@ def clean_text(text: str, emoji_mode: str = "keep") -> str:
     if emoji_mode == "en":
         t = emoji.demojize(t, delimiters=(" ", " ")).replace("_", " ")
     t = REPEAT_RE.sub(r"\1\1", t)
-    return re.sub(r"\s+", " ", t).strip()
-
+    regex_cleaned = re.sub(r"\s+", " ", t).strip()
+    return regex_cleaned

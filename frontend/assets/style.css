@@ -193,10 +193,12 @@ header[data-testid="stHeader"] {
         transform: scale(0.95);
         opacity: 0.8;
     }
+
     50% {
         transform: scale(1.15);
         opacity: 0;
     }
+
     100% {
         transform: scale(0.95);
         opacity: 0;
@@ -1006,4 +1008,3 @@ div.stDownloadButton>button:hover {
     border-radius: var(--radius-pill);
     transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
-

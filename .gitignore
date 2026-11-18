@@ -22,9 +22,7 @@ env/
 Model_viso_bert/
 Model_viso_bert_v2/model.safetensors
 Model_viso_bert_v3/
-Model_5cd_visobert/model.safetensors
-*.zip
-
+Model_5cd_visobert/
 # OS
 Thumbs.db
 .DS_Store

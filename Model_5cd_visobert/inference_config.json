@@ -1,0 +1,11 @@
+{
+  "temperature": 1.3,
+  "emoji_mode": "keep",
+  "max_len": 256,
+  "labels": [
+    "NEG",
+    "POS",
+    "NEU"
+  ]
+}
+
